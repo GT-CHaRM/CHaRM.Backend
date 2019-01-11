@@ -1,0 +1,172 @@
+scalar DateTime
+
+type Item {
+    id: ID!
+    name: String!
+}
+
+type ItemGrouping {
+    item: Item!
+    count: Int!
+}
+
+type Submission {
+    id: ID!
+    submitted: DateTime!
+    items: [ItemGrouping!]!
+    visitor: Visitor!
+}
+
+interface User {
+    id: ID!
+    email: String!
+    name: String!
+    type: UserType!
+    inviteAccepted: Boolean!
+    emailConfirmed: Boolean!
+    deletedAt: DateTime
+    lastLogin: DateTime
+    joinedAt: DateTime!
+    isSuper: Boolean!
+    sendMail: Boolean!
+}
+
+type Visitor implements User {
+    id: ID!
+    email: String!
+    name: String!
+    type: UserType!
+    emailConfirmed: Boolean!
+    deletedAt: DateTime
+    lastLogin: DateTime
+    joinedAt: DateTime!
+    isSuper: Boolean!
+    sendMail: Boolean!
+
+    submissions: [Submission!]!
+}
+
+type Employee implements User {
+    id: ID!
+    email: String!
+    name: String!
+    type: UserType!
+    emailConfirmed: Boolean!
+    deletedAt: DateTime
+    lastLogin: DateTime
+    joinedAt: DateTime!
+    isSuper: Boolean!
+    sendMail: Boolean!
+}
+
+type Administrator implements User {
+    id: ID!
+    email: String!
+    name: String!
+    type: UserType!
+    inviteAccepted: Boolean!
+    emailConfirmed: Boolean!
+    deletedAt: DateTime
+    lastLogin: DateTime
+    joinedAt: DateTime!
+    isSuper: Boolean!
+    sendMail: Boolean!
+}
+
+enum UserType {
+    Visitor
+    Employee
+    Administrator
+}
+
+input LoginInformation {
+    name: String!
+    password: String!
+}
+
+input RegistrationInformation {
+    name: String!
+    password: String!
+    email: String
+}
+
+type AuthPayload {
+    token: String!
+    user: User!
+}
+
+type UserIdPayload {
+    id: ID!
+}
+
+type TriggerPasswordResetPayload {
+    ok: Boolean!
+}
+
+input SignupInput {
+    email: String!
+    password: String!
+    name: String!
+}
+
+type Query {
+    currentUser: User
+}
+
+type Mutation {
+    signup(data: SignupInput!): AuthPayload!
+    confirmEmail(email: String!, emailConfirmToken: String!): AuthPayload!
+    login(email: String!, password: String!): AuthPayload!
+    changePassword(oldPassword: String!, newPassword: String!): UserIdPayload!
+    triggerPasswordReset(email: String!): TriggerPasswordResetPayload!
+    passwordReset(
+        email: String!
+        resetToken: String!
+        password: String!
+    ): UserIdPayload!
+}
+
+extend type Query {
+    items: [Item!]!
+}
+
+extend type Query {
+    users: [User!]!
+    user(id: ID!): User
+}
+
+extend type Query {
+    selfSubmissions: [Submission!]!
+    submissions: [Submission!]!
+}
+
+extend type Mutation {
+    deleteSelf: Visitor
+}
+
+extend type Mutation {
+    addItem(item: Item): Item
+    modifyItem(item: Item): Item
+    removeItem(item: Item): Item
+}
+
+extend type Mutation {
+    addUser(user: User): User
+    modifyUser(user: User): User
+    removeUser(user: User): User
+}
+
+input ItemSubmissionInput {
+    item: ID!
+    count: Int!
+}
+
+input SelfSubmissionInput {
+    submitted: String!
+    items: [ItemSubmissionInput!]!
+}
+
+extend type Mutation {
+    submit(submission: SelfSubmissionInput): Submission!
+    submitFor(submission: Submission, visitor: Visitor): Submission!
+}
