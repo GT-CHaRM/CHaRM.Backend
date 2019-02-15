@@ -10,9 +10,15 @@
     <Compile Include="Model.fs" />
     <Compile Include="Provider.fs" />
     <Compile Include="Schema.fs" />
+    <Compile Include="Authentication.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="GraphQL" Version="2.4.0" />
+    <PackageReference Include="GraphQL.Server.Transports.AspNetCore" Version="3.4.0" />
+    <PackageReference Include="GraphQL.Server.Transports.WebSockets" Version="3.4.0" />
+    <PackageReference Include="GraphQL.Server.Ui.Playground" Version="3.4.0" />
     <PackageReference Include="Microsoft.AspNetCore.App" Version="2.2.1" />
+    <PackageReference Include="Taskbuilder.fs" Version="2.1.0" />
   </ItemGroup>
 </Project>

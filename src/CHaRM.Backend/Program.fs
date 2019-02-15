@@ -29,7 +29,8 @@ let configureServices (services: IServiceCollection) =
         .AddSingleton<Schema>(Schema.Schema)
         .AddGraphQL(fun options ->
             options.ExposeExceptions <- true
-            options.EnableMetrics <- true)
+            options.EnableMetrics <- true
+        )
         .AddWebSockets()
         |> ignore
     ()
