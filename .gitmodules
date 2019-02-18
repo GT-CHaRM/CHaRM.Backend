@@ -1,3 +1,0 @@
-[submodule "dependencies/graphql-dotnet-fsharp"]
-	path = dependencies/graphql-dotnet-fsharp
-	url = https://github.com/nimashoghi/graphql-dotnet-fsharp.git
