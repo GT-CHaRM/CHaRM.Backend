@@ -7,10 +7,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{978945F0-DA0
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "CHaRM.Backend", "src\CHaRM.Backend\CHaRM.Backend.fsproj", "{B8B9C7CB-EB16-487C-BB4F-6BACA80C6006}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{1DD36392-FE36-4724-A0A4-DDE80F05AF73}"
-EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "CHaRM.Backend.UnitTests", "tests\CHaRM.Backend.UnitTests\CHaRM.Backend.UnitTests.fsproj", "{791E38B4-EF81-4A78-9B65-5548E2F01C52}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,21 +32,8 @@ Global
 		{B8B9C7CB-EB16-487C-BB4F-6BACA80C6006}.Release|x64.Build.0 = Release|Any CPU
 		{B8B9C7CB-EB16-487C-BB4F-6BACA80C6006}.Release|x86.ActiveCfg = Release|Any CPU
 		{B8B9C7CB-EB16-487C-BB4F-6BACA80C6006}.Release|x86.Build.0 = Release|Any CPU
-		{791E38B4-EF81-4A78-9B65-5548E2F01C52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{791E38B4-EF81-4A78-9B65-5548E2F01C52}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{791E38B4-EF81-4A78-9B65-5548E2F01C52}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{791E38B4-EF81-4A78-9B65-5548E2F01C52}.Debug|x64.Build.0 = Debug|Any CPU
-		{791E38B4-EF81-4A78-9B65-5548E2F01C52}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{791E38B4-EF81-4A78-9B65-5548E2F01C52}.Debug|x86.Build.0 = Debug|Any CPU
-		{791E38B4-EF81-4A78-9B65-5548E2F01C52}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{791E38B4-EF81-4A78-9B65-5548E2F01C52}.Release|Any CPU.Build.0 = Release|Any CPU
-		{791E38B4-EF81-4A78-9B65-5548E2F01C52}.Release|x64.ActiveCfg = Release|Any CPU
-		{791E38B4-EF81-4A78-9B65-5548E2F01C52}.Release|x64.Build.0 = Release|Any CPU
-		{791E38B4-EF81-4A78-9B65-5548E2F01C52}.Release|x86.ActiveCfg = Release|Any CPU
-		{791E38B4-EF81-4A78-9B65-5548E2F01C52}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{B8B9C7CB-EB16-487C-BB4F-6BACA80C6006} = {978945F0-DA01-41CD-AA9D-22764469C3F3}
-		{791E38B4-EF81-4A78-9B65-5548E2F01C52} = {1DD36392-FE36-4724-A0A4-DDE80F05AF73}
 	EndGlobalSection
 EndGlobal

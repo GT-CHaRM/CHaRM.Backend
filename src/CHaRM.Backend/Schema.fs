@@ -1,125 +1,179 @@
 module CHaRM.Backend.Schema
 
-(*
-    This module contains the GraphQL Schema definition.
-    The GraphQL Schema provides us with a way of defining all of our data types in a language-independent manner.
-    For example, a user type might be the following in Java:
-    ```
-        public class User {
-            private String name;
-            private int age;
-
-            public Bicycle(String name, int age) {
-                this.name = name;
-                this.age = age;
-            }
-
-            public String getName() { return name; }
-            public String setName(String name) { this.name = name; }
-
-            public String getAge() { return age; }
-            public String setAge(String age) { this.age = age; }
-        }
-    ```
-    but that same user might be typed as such in TypeScript:
-    ```
-        interface User {
-            name: string;
-            age: number;
-        }
-    ```
-    and in JavaScript, there's no static typing so the object is just plain JSON!
-
-    GraphQL gives us a langauge to define our data in 1 language and have it work predictably across all of the languages we use that data in.
-    The point of the Schema module is to convert our F# data types into GraphQL schema types.
-*)
-
 open System
 open GraphQL.FSharp
 open GraphQL.FSharp.Builder
+open GraphQL.FSharp.Server
 
 open CHaRM.Backend.Model
 open CHaRM.Backend.Provider
+open CHaRM.Backend.Util
 
-(* Automatically converting our model to Schema *)
-let ItemTypeGraph = Auto.Object<ItemType>
-let ItemSubmissionBatchGraph = Auto.Object<ItemSubmissionBatch>
-let SubmissionGraph = Auto.Object<Submission>
-let UserGraph = Auto.Interface<User>
-let VisitorGraph = Auto.Object<Visitor>
-let EmployeeGraph = Auto.Object<Employee>
-let AdministratorGraph = Auto.Object<Administrator>
+let ItemTypeGraph =
+    object<ItemType> {
+        fields [
+            field {
+                prop (fun this -> this.Id)
+            }
+            field {
+                prop (fun this -> this.Name)
+            }
+        ]
+    }
 
-/// Queries are requests to the server that *get* some data without making any changes to it.
-/// For example, getting a list of all of my submissions is a query.
-let Query =
+let ItemSubmissionBatchGraph =
+    object<ItemSubmissionBatch> {
+        fields [
+            field {
+                prop (fun this -> this.Count)
+            }
+            field {
+                prop (fun this -> this.Item)
+            }
+        ]
+    }
+
+let SubmissionGraph =
+    object<Submission> {
+        fields [
+            field {
+                prop (fun this -> this.Id)
+            }
+            field {
+                prop (fun this -> this.Items)
+            }
+            field {
+                prop (fun this -> this.Submitted)
+            }
+            field {
+                prop (fun this -> this.ZipCode)
+            }
+        ]
+    }
+
+let internal userFields<'t when 't :> User> : Types.Field<'t> list = [
+    field {
+        prop (fun this -> this.UserName)
+    }
+    field {
+        prop (fun this -> this.NormalizedEmail)
+    }
+]
+
+let UserGraph =
+    object<User> {
+        name "User"
+        fields [
+            yield! userFields
+        ]
+    }
+
+let VisitorGraph =
+    object<Visitor> {
+        fields [
+            yield! userFields
+            yield field {
+                prop (fun this -> this.ZipCode)
+            }
+        ]
+    }
+
+let EmployeeGraph =
+    object<Employee> {
+        fields [
+            yield! userFields
+        ]
+    }
+
+let AdministratorGraph =
+    object<Administrator> {
+        fields [
+            yield! userFields
+        ]
+    }
+
+
+let Query (Inject (userProvider: UserProvider)) =
     query [
-        /// Every **endpoint** is a specific request.
-        /// The function inside the `resolve` or `resolveAsync` method is called whenever that request is made.
-        /// The return value of that function is returned to the client.
-        endpoint "items" {
-            resolveAsync (fun _ -> itemProvider.All ())
-        }
-
-        endpoint "item" {
-            arguments [
-                Define.Argument<Guid> "id"
-            ]
-            resolveAsync (fun ctx ->
-                ctx.GetArgument<Guid> "id"
-                |> itemProvider.Get
+        endpoint "Items" {
+            authorize "Visitor"
+            resolveAsync (
+                fun _ _ ->
+                    itemProvider.All ()
             )
         }
 
-        endpoint "submissions" {
-            resolveAsync (fun _ ->
-                submissionProvider.All ()
+        endpoint "Item" {
+            resolveAsync (
+                fun _ args ->
+                    itemProvider.Get args
             )
         }
 
+        endpoint "Submissions" {
+            resolveAsync (
+                fun _ _ -> submissionProvider.All ()
+            )
+        }
 
-        endpoint "submission" {
-            arguments [
-                Define.Argument<Guid> "id"
-            ]
-            resolveAsync (fun ctx ->
-                ctx.GetArgument<Guid> "id"
-                |> submissionProvider.Get
+        endpoint "Submission" {
+            resolveAsync (
+                fun _ args ->
+                    submissionProvider.Get args
+            )
+        }
+
+        endpoint "User" {
+            resolveAsync (
+                fun _ (args: {|Id: Guid|}) ->
+                    userProvider.Get args.Id
+            )
+        }
+
+        endpoint "Me" {
+            resolveAsync (
+                fun _ _ ->
+                    userProvider.Me ()
             )
         }
     ]
 
-/// Mutations are requests made by the client that *change* something on the server's database.
-/// For example, adding a new submission is a mutation.
-let Mutation =
+let Mutation (Inject (userProvider: UserProvider)) =
     mutation [
-        endpoint "createItem" {
-            arguments [
-                Define.Argument<string> "name"
-            ]
-            resolveAsync (fun ctx ->
-                ctx.GetArgument<string> "name"
-                |> itemProvider.Create
+        endpoint "CreateItem" {
+            resolveAsync (
+                fun _ args ->
+                    itemProvider.Create args
             )
         }
 
-        endpoint "createSubmission" {
-            arguments [
-                Define.Argument<Guid System.Collections.Generic.List> "items"
-                Define.Argument<string> "zipCode"
-            ]
-            resolveAsync (fun ctx ->
-                ctx.GetArgument<Guid System.Collections.Generic.List> "items"
-                |> Seq.toList
-                |> submissionProvider.Create
+        endpoint "CreateSubmission" {
+            resolveAsync (
+                fun _ args ->
+                    submissionProvider.Create args
+            )
+        }
+
+        endpoint "Login" {
+            resolveAsync (
+                fun _ (args: {|Username: string; Password: string|}) ->
+                    userProvider.Login args.Username args.Password
+            )
+        }
+
+        // TODO: Fix issue with getting failure after the first mistake
+        endpoint "Register" {
+            resolveAsync (
+                fun _ (args: {|Username: string; Email: string; Password: string|}) ->
+                    userProvider.Register args.Username args.Password args.Email
             )
         }
     ]
 
-let Schema =
+let Schema (provider: IServiceProvider) =
     schema {
-        query Query
-        mutation Mutation
+        query (Query provider)
+        mutation (Mutation provider)
         types [
             ItemTypeGraph
             ItemSubmissionBatchGraph

@@ -5,20 +5,25 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\dependencies\graphql-dotnet-fsharp\src\GraphQL.FSharp\GraphQL.FSharp.fsproj" />
+    <ProjectReference Include="..\..\dependencies\graphql-dotnet-fsharp\src\GraphQL.FSharp.Server\GraphQL.FSharp.Server.fsproj" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Util.fs" />
     <Compile Include="Model.fs" />
-    <Compile Include="Provider.fs" />
+    <Compile Include="Jwt.fs" />
+    <Compile Include="Provider/Item.fs" />
+    <Compile Include="Provider/Submission.fs" />
+    <Compile Include="Provider/User.fs" />
     <Compile Include="Schema.fs" />
-    <Compile Include="Authentication.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="GraphQL" Version="2.4.0" />
+    <PackageReference Include="GraphQL.Server.Authorization.AspNetCore" Version="3.4.0" />
     <PackageReference Include="GraphQL.Server.Transports.AspNetCore" Version="3.4.0" />
     <PackageReference Include="GraphQL.Server.Transports.WebSockets" Version="3.4.0" />
     <PackageReference Include="GraphQL.Server.Ui.Playground" Version="3.4.0" />
-    <PackageReference Include="Microsoft.AspNetCore.App" Version="2.2.1" />
+    <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Taskbuilder.fs" Version="2.1.0" />
   </ItemGroup>
 </Project>

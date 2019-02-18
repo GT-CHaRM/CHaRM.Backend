@@ -1,0 +1,13 @@
+version: "3"
+services:
+    server:
+        build: ./
+        stdin_open: true
+        tty: true
+    database:
+        image: mcr.microsoft.com/mssql/server:2019-CTP2.2-ubuntu
+        environment:
+            - ACCEPT_EULA=Y
+            - SA_PASSWORD=3OXa0H8T3U1wLh29
+        ports:
+            - 1433:1433
