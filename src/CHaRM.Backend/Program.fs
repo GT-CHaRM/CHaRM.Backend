@@ -37,7 +37,7 @@ let ensureDbCreated (Inject (config: IConfigurationRoot)) =
 
 let getConfig () =
     ConfigurationBuilder()
-        .SetBasePath(@"C:\Users\nimas\Repositories\CHaRM\Backend\src\CHaRM.Backend")
+        // .SetBasePath(@"C:\Users\nimas\Repositories\CHaRM\Backend\src\CHaRM.Backend")
         .AddJsonFile("appsettings.json")
         .Build()
 
@@ -155,7 +155,7 @@ let configureServices (services: IServiceCollection) =
             fun options ->
                 // TODO: Document JwtPolicy
                 options.AddJwtPolicy
-                    "Authenticated"
+                    "LoggedIn"
                     (
                         fun policy ->
                             policy.RequireAuthenticatedUser()

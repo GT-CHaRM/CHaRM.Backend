@@ -30,7 +30,7 @@ let internal getProjects directory =
     |> Array.choose getFsproj
 
 let srcProjects = getProjects "src"
-let testProjects = getProjects "tests"
+// let testProjects = getProjects "tests"
 let backendProject =
     srcProjects
     |> Array.pick (fun file ->
@@ -42,7 +42,7 @@ let backendProject =
 let projects =
     [|
         yield! srcProjects
-        yield! testProjects
+        // yield! testProjects
     |]
 
 let runOnAllProjects f (projects: FileInfo []) =

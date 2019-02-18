@@ -11,6 +11,7 @@ let mutable submissions = [|
         Id = Guid.NewGuid ()
         Items = [|
             {
+                Id = Guid.NewGuid ()
                 Item = items.[0]
                 Count = 5
             }
@@ -34,6 +35,7 @@ let submissionProvider: SubmissionProvider = {
             |> Array.groupBy id
             |> Array.map (fun (id, ids) ->
                 {
+                    Id = Guid.NewGuid ()
                     Item = items |> Array.find (fun item -> item.Id = id)
                     Count = Array.length ids
                 })

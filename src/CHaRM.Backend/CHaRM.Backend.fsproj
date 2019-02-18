@@ -4,6 +4,12 @@
     <TargetFramework>netcoreapp2.2</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Content Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\dependencies\graphql-dotnet-fsharp\src\GraphQL.FSharp\GraphQL.FSharp.fsproj" />
     <ProjectReference Include="..\..\dependencies\graphql-dotnet-fsharp\src\GraphQL.FSharp.Server\GraphQL.FSharp.Server.fsproj" />
   </ItemGroup>

@@ -25,6 +25,9 @@ let ItemSubmissionBatchGraph =
     object<ItemSubmissionBatch> {
         fields [
             field {
+                prop (fun this -> this.Id)
+            }
+            field {
                 prop (fun this -> this.Count)
             }
             field {
@@ -46,57 +49,35 @@ let SubmissionGraph =
                 prop (fun this -> this.Submitted)
             }
             field {
-                prop (fun this -> this.ZipCode)
+                prop (fun this -> this.ZipCode |> Option.ofObj)
             }
         ]
     }
-
-let internal userFields<'t when 't :> User> : Types.Field<'t> list = [
-    field {
-        prop (fun this -> this.UserName)
-    }
-    field {
-        prop (fun this -> this.NormalizedEmail)
-    }
-]
 
 let UserGraph =
     object<User> {
         name "User"
         fields [
-            yield! userFields
-        ]
-    }
-
-let VisitorGraph =
-    object<Visitor> {
-        fields [
-            yield! userFields
-            yield field {
-                prop (fun this -> this.ZipCode)
+            field {
+                prop (fun this -> this.UserName)
+            }
+            field {
+                prop (fun this -> this.NormalizedEmail)
+            }
+            field {
+                prop (fun this -> this.Submissions)
+            }
+            field {
+                prop (fun this -> this.ZipCode |> Option.ofObj)
             }
         ]
     }
-
-let EmployeeGraph =
-    object<Employee> {
-        fields [
-            yield! userFields
-        ]
-    }
-
-let AdministratorGraph =
-    object<Administrator> {
-        fields [
-            yield! userFields
-        ]
-    }
-
 
 let Query (Inject (userProvider: UserProvider)) =
     query [
         endpoint "Items" {
             authorize "Visitor"
+            description "List of items available to submit"
             resolveAsync (
                 fun _ _ ->
                     itemProvider.All ()
@@ -104,6 +85,7 @@ let Query (Inject (userProvider: UserProvider)) =
         }
 
         endpoint "Item" {
+            authorize "Visitor"
             resolveAsync (
                 fun _ args ->
                     itemProvider.Get args
@@ -111,26 +93,30 @@ let Query (Inject (userProvider: UserProvider)) =
         }
 
         endpoint "Submissions" {
+            authorize "Visitor"
             resolveAsync (
                 fun _ _ -> submissionProvider.All ()
             )
         }
 
         endpoint "Submission" {
+            authorize "Visitor"
             resolveAsync (
                 fun _ args ->
                     submissionProvider.Get args
             )
         }
 
-        endpoint "User" {
-            resolveAsync (
-                fun _ (args: {|Id: Guid|}) ->
-                    userProvider.Get args.Id
-            )
-        }
+        // endpoint "User" {
+        //     authorize "Employee"
+        //     resolveAsync (
+        //         fun _ (args: {|Id: Guid|}) ->
+        //             userProvider.Get args.Id
+        //     )
+        // }
 
         endpoint "Me" {
+            authorize "LoggedIn"
             resolveAsync (
                 fun _ _ ->
                     userProvider.Me ()
@@ -141,6 +127,7 @@ let Query (Inject (userProvider: UserProvider)) =
 let Mutation (Inject (userProvider: UserProvider)) =
     mutation [
         endpoint "CreateItem" {
+            authorize "Administrator"
             resolveAsync (
                 fun _ args ->
                     itemProvider.Create args
@@ -148,6 +135,7 @@ let Mutation (Inject (userProvider: UserProvider)) =
         }
 
         endpoint "CreateSubmission" {
+            authorize "Visitor"
             resolveAsync (
                 fun _ args ->
                     submissionProvider.Create args
@@ -179,8 +167,5 @@ let Schema (provider: IServiceProvider) =
             ItemSubmissionBatchGraph
             SubmissionGraph
             UserGraph
-            VisitorGraph
-            EmployeeGraph
-            AdministratorGraph
         ]
     }

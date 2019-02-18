@@ -75,7 +75,7 @@ let register
     username password email =
     task {
         let user =
-            Visitor (
+            User (
                 UserName = username,
                 Email = email
             )
