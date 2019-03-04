@@ -4,7 +4,7 @@ open System
 open System.IdentityModel.Tokens.Jwt
 open System.Security.Claims
 open System.Text
-open FSharp.Control.Tasks.V2
+open FSharp.Utils.Tasks
 open Microsoft.AspNetCore.Identity
 open Microsoft.Extensions.Configuration
 open Microsoft.IdentityModel.Tokens

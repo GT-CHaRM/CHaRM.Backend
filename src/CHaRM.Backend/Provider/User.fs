@@ -4,7 +4,8 @@ module CHaRM.Backend.Provider.User
 open System
 open System.Security.Claims
 open System.Threading.Tasks
-open FSharp.Control.Tasks.V2
+open FSharp.Utils
+open FSharp.Utils.Tasks
 open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Identity
 open Microsoft.Extensions.Configuration
@@ -36,7 +37,7 @@ let get
     (id: Guid) =
     task {
         let! user = users.FindByIdAsync (id.ToString())
-        return Option.ofBox user
+        return Option.ofNullObj user
     }
 
 let me
@@ -94,20 +95,23 @@ let register
         | _, IdentityError error -> return Error error
     }
 
-type UserProvider =
-    {
-        All: unit -> User [] Task
-        Get: Guid -> User option Task
-        Me: unit -> User option Task
-        Login: string -> string -> Result<string, string> Task
-        Register: string -> string -> string -> Result<string, string> Task
-    }
+type IUserProvider =
+    abstract member All: unit -> User [] Task
+    abstract member Get: id: Guid -> User option Task
+    abstract member Me: unit -> User option Task
+    abstract member Login: username: string -> password: string -> Result<string, string> Task
+    abstract member Register: username: string -> password: string -> email: string -> Result<string, string> Task
 
-    static member Create (Inject (context, config, users, signIn)) =
-        {
-            All = fun () -> all users
-            Get = get users
-            Me = fun () -> me context users
-            Login = login config signIn users
-            Register = register config users
-        }
+type UserProvider (context, config, users, signIn) =
+    let all () = all users
+    let get id = get users id
+    let me () = me context users
+    let login username password = login config signIn users username password
+    let register username password email = register config users username password email
+
+    interface IUserProvider with
+        member __.All () = all ()
+        member __.Get id = get id
+        member __.Me () = me ()
+        member __.Login username password = login username password
+        member __.Register username password email = register username password email

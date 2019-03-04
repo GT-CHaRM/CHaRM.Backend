@@ -4,7 +4,8 @@ open System
 open System.IdentityModel.Tokens.Jwt
 open System.Text
 open System.Threading.Tasks
-open FSharp.Control.Tasks.V2
+open FSharp.Utils
+open FSharp.Utils.Tasks
 open GraphQL.FSharp.Server
 open GraphQL.Types
 open GraphQL.Server
@@ -27,7 +28,7 @@ open CHaRM.Backend.Util
 type ApplicationDbContext (context: DbContextOptions<ApplicationDbContext>) =
     inherit IdentityDbContext<User> (context)
 
-let ensureDbCreated (Inject (config: IConfigurationRoot)) =
+let ensureDbCreated (config: IConfigurationRoot) =
     let dbConfig =
         DbContextOptionsBuilder<ApplicationDbContext>()
             .UseSqlServer(config.GetConnectionString "Database")
@@ -41,7 +42,7 @@ let getConfig () =
         .AddJsonFile("appsettings.json")
         .Build()
 
-let addRoles (Inject (roleManager: RoleManager<IdentityRole>)) =
+let addRoles (roleManager: RoleManager<IdentityRole>) =
     [|"Visitor"; "Employee"; "Administrator"|]
     |> Array.iter (fun role ->
         let task =
@@ -61,20 +62,23 @@ let configure (app: IApplicationBuilder) =
     app.UseAuthentication()
     |> ignore
 
-    app.UseCors(fun policy ->
-        policy
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowAnyOrigin()
-        |> ignore)
+    app.UseCors(
+        fun policy ->
+            policy
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowAnyOrigin()
+            |> ignore
+    )
     |> ignore
+
     app.UseWebSockets() |> ignore
     app.UseGraphQL<Schema> "/graphql" |> ignore
     app.UseGraphQLWebSockets<Schema> "/graphql" |> ignore
     app.UseGraphQLPlayground (GraphQLPlaygroundOptions ()) |> ignore
 
-    ensureDbCreated app.ApplicationServices
-    addRoles app.ApplicationServices
+    ensureDbCreated (DependencyInjection.resolve app.ApplicationServices)
+    addRoles (DependencyInjection.resolve app.ApplicationServices)
 
     ()
 
@@ -132,10 +136,7 @@ let configureServices (services: IServiceCollection) =
     )
     |> ignore
 
-    services.AddTransient<UserProvider> (
-        implementationFactory = fun services ->
-            UserProvider.Create services
-    )
+    services.AddTransient<IUserProvider, UserProvider> ()
     |> ignore
 
 
@@ -144,7 +145,7 @@ let configureServices (services: IServiceCollection) =
         .AddSingleton<Schema>(
             implementationFactory =
                 fun provider ->
-                    Schema.Schema provider
+                    Schema.Schema (DependencyInjection.resolve provider)
         )
         .AddGraphQL(fun options ->
             options.ExposeExceptions <- true
@@ -152,25 +153,7 @@ let configureServices (services: IServiceCollection) =
         )
         .AddWebSockets()
         .AddDefaultFieldNameConverter()
-        .AddGraphQLAuthorization(
-            fun options ->
-                // TODO: Document JwtPolicy
-                options.AddJwtPolicy
-                    "LoggedIn"
-                    (
-                        fun policy ->
-                            policy.RequireAuthenticatedUser()
-                    )
-
-                options.AddJwtPolicy
-                    "Visitor"
-                    (
-                        fun policy ->
-                            policy
-                                .RequireAuthenticatedUser()
-                                .RequireRole "Visitor"
-                    )
-        )
+        .AddAuthorization<Schema.Role> id
         |> ignore
 
     ()

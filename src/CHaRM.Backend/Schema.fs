@@ -1,22 +1,36 @@
 module CHaRM.Backend.Schema
 
 open System
+open System.Threading.Tasks
 open GraphQL.FSharp
-open GraphQL.FSharp.Builder
 open GraphQL.FSharp.Server
+open Microsoft.AspNetCore.Authorization
 
 open CHaRM.Backend.Model
 open CHaRM.Backend.Provider
-open CHaRM.Backend.Util
+
+type Role =
+    | LoggedIn
+    | Visitor
+    | Employee
+    | Administrator
+
+    member this.Authorize (_services: IServiceProvider, builder: AuthorizationPolicyBuilder) =
+        match this with
+        | LoggedIn -> builder
+        | Visitor -> builder
+        | Employee -> builder
+        | Administrator -> builder
+
 
 let ItemTypeGraph =
     object<ItemType> {
         fields [
-            field {
-                prop (fun this -> this.Id)
+            field __ {
+                prop (fun this -> Task.FromResult this.Id)
             }
-            field {
-                prop (fun this -> this.Name)
+            field __ {
+                prop (fun this -> Task.FromResult this.Name)
             }
         ]
     }
@@ -24,14 +38,14 @@ let ItemTypeGraph =
 let ItemSubmissionBatchGraph =
     object<ItemSubmissionBatch> {
         fields [
-            field {
-                prop (fun this -> this.Id)
+            field __ {
+                prop (fun this -> Task.FromResult this.Id)
             }
-            field {
-                prop (fun this -> this.Count)
+            field __ {
+                prop (fun this -> Task.FromResult this.Count)
             }
-            field {
-                prop (fun this -> this.Item)
+            field __ {
+                prop (fun this -> Task.FromResult this.Item)
             }
         ]
     }
@@ -39,17 +53,17 @@ let ItemSubmissionBatchGraph =
 let SubmissionGraph =
     object<Submission> {
         fields [
-            field {
-                prop (fun this -> this.Id)
+            field __ {
+                prop (fun this -> Task.FromResult this.Id)
             }
-            field {
-                prop (fun this -> this.Items)
+            field __ {
+                prop (fun this -> Task.FromResult this.Items)
             }
-            field {
-                prop (fun this -> this.Submitted)
+            field __ {
+                prop (fun this -> Task.FromResult this.Submitted)
             }
-            field {
-                prop (fun this -> this.ZipCode |> Option.ofObj)
+            field __ {
+                prop (fun this -> Task.FromResult (Option.ofObj this.ZipCode))
             }
         ]
     }
@@ -58,109 +72,102 @@ let UserGraph =
     object<User> {
         name "User"
         fields [
-            field {
-                prop (fun this -> this.UserName)
+            field __ {
+                prop (fun this -> Task.FromResult this.UserName)
             }
-            field {
-                prop (fun this -> this.NormalizedEmail)
+            field __ {
+                prop (fun this -> Task.FromResult this.NormalizedEmail)
             }
-            field {
-                prop (fun this -> this.Submissions)
+            field __ {
+                prop (fun this -> Task.FromResult this.Submissions)
             }
-            field {
-                prop (fun this -> this.ZipCode |> Option.ofObj)
+            field __ {
+                prop (fun this -> Task.FromResult (Option.ofObj this.ZipCode))
             }
         ]
     }
 
-let Query (Inject (userProvider: UserProvider)) =
+let Query (userProvider: IUserProvider) =
     query [
-        endpoint "Items" {
-            authorize "Visitor"
+        endpoint __ "Items" {
+            authorize Visitor
             description "List of items available to submit"
-            resolveAsync (
+            resolve (
                 fun _ _ ->
                     itemProvider.All ()
             )
         }
 
-        endpoint "Item" {
-            authorize "Visitor"
-            resolveAsync (
+        endpoint __ "Item" {
+            authorize Visitor
+            resolve (
                 fun _ args ->
                     itemProvider.Get args
             )
         }
 
-        endpoint "Submissions" {
-            authorize "Visitor"
-            resolveAsync (
+        endpoint __ "Submissions" {
+            authorize Visitor
+            resolve (
                 fun _ _ -> submissionProvider.All ()
             )
         }
 
-        endpoint "Submission" {
-            authorize "Visitor"
-            resolveAsync (
+        endpoint __ "Submission" {
+            authorize Visitor
+            resolve (
                 fun _ args ->
                     submissionProvider.Get args
             )
         }
 
-        // endpoint "User" {
-        //     authorize "Employee"
-        //     resolveAsync (
-        //         fun _ (args: {|Id: Guid|}) ->
-        //             userProvider.Get args.Id
-        //     )
-        // }
-
-        endpoint "Me" {
-            authorize "LoggedIn"
-            resolveAsync (
+        endpoint __ "Me" {
+            authorize LoggedIn
+            resolve (
                 fun _ _ ->
                     userProvider.Me ()
             )
         }
     ]
 
-let Mutation (Inject (userProvider: UserProvider)) =
+
+let Mutation (userProvider: IUserProvider) =
     mutation [
-        endpoint "CreateItem" {
-            resolveAsync (
+        endpoint __ "CreateItem" {
+            resolve (
                 fun _ args ->
                     itemProvider.Create args
             )
         }
 
-        endpoint "CreateSubmission" {
-            authorize "Visitor"
-            resolveAsync (
+        endpoint __ "CreateSubmission" {
+            authorize Visitor
+            resolve (
                 fun _ args ->
                     submissionProvider.Create args
             )
         }
 
-        endpoint "Login" {
-            resolveAsync (
+        endpoint __ "Login" {
+            resolve (
                 fun _ (args: {|Username: string; Password: string|}) ->
                     userProvider.Login args.Username args.Password
             )
         }
 
         // TODO: Fix issue with getting failure after the first mistake
-        endpoint "Register" {
-            resolveAsync (
+        endpoint __ "Register" {
+            resolve (
                 fun _ (args: {|Username: string; Email: string; Password: string|}) ->
                     userProvider.Register args.Username args.Password args.Email
             )
         }
     ]
 
-let Schema (provider: IServiceProvider) =
+let Schema (userProvider: IUserProvider) =
     schema {
-        query (Query provider)
-        mutation (Mutation provider)
+        query (Query userProvider)
+        mutation (Mutation userProvider)
         types [
             ItemTypeGraph
             ItemSubmissionBatchGraph
