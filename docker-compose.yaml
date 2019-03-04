@@ -1,13 +1,18 @@
 version: "3"
 services:
     server:
-        build: ./
-        stdin_open: true
-        tty: true
+        build:
+            context: ./
+            dockerfile: ./docker/server/Dockerfile
+        ports:
+            - 5000:5000
+        depends_on:
+            - database
     database:
-        image: mcr.microsoft.com/mssql/server:2019-CTP2.2-ubuntu
+        build:
+            context: ./docker/database
+            dockerfile: ./Dockerfile
         environment:
-            - ACCEPT_EULA=Y
             - SA_PASSWORD=3OXa0H8T3U1wLh29
         ports:
             - 1433:1433

@@ -14,11 +14,22 @@ type ItemProvider = {
 
 (* Mock implementations *)
 
-let mutable items = [|
+let newItem name =
     {
         Id = Guid.NewGuid ()
-        Name = "myName"
+        Name = name
     }
+
+let mutable items = [|
+    yield newItem "Paint"
+    yield newItem "Tires"
+    yield newItem "Hazardous Chemicals"
+    yield newItem "Electronics"
+    yield newItem "Styrofoam"
+    yield newItem "Metal"
+    yield newItem "Mattresses"
+    yield newItem "Textiles"
+    yield newItem "Glass"
 |]
 let itemProvider: ItemProvider = {
     All = fun () -> Task.FromResult items

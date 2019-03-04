@@ -77,7 +77,8 @@ let register
         let user =
             User (
                 UserName = username,
-                Email = email
+                Email = email,
+                SecurityStamp = Guid.NewGuid().ToString()
             )
         let! result =
             users.CreateAsync (

@@ -29,7 +29,7 @@ ENV ASPNETCORE_URLS=http://+:80 \
 
 FROM dotnet-sdk-2-2
 
-WORKDIR /usr/src/app
+WORKDIR /usr/src/server
 
 RUN dotnet tool install fake-cli -g
 
@@ -37,4 +37,4 @@ ENV PATH="/root/.dotnet/tools:${PATH}"
 
 COPY . .
 
-CMD ["fake", "build", "-t", "Run"]
+CMD  ["bash", "./docker/server/entrypoint.sh"]

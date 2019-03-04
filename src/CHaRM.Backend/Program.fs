@@ -75,6 +75,7 @@ let configure (app: IApplicationBuilder) =
 
     ensureDbCreated app.ApplicationServices
     addRoles app.ApplicationServices
+
     ()
 
 let configureServices (services: IServiceCollection) =
@@ -177,6 +178,7 @@ let configureServices (services: IServiceCollection) =
 [<EntryPoint>]
 let main _ =
     WebHostBuilder()
+        .UseUrls("http://0.0.0.0:5000")
         .UseKestrel()
         .Configure(Action<IApplicationBuilder> configure)
         .ConfigureServices(configureServices)

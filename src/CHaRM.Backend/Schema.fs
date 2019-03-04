@@ -127,7 +127,6 @@ let Query (Inject (userProvider: UserProvider)) =
 let Mutation (Inject (userProvider: UserProvider)) =
     mutation [
         endpoint "CreateItem" {
-            authorize "Administrator"
             resolveAsync (
                 fun _ args ->
                     itemProvider.Create args

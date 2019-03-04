@@ -11,6 +11,10 @@
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/src/CHaRM.Backend/bin/Debug/netcoreapp2.2/CHaRM.Backend.dll",
             "args": [],
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "justMyCode": false,
             "suppressJITOptimizations": true,
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",

@@ -7,18 +7,18 @@ open System.Threading.Tasks
 open CHaRM.Backend.Model
 
 let mutable submissions = [|
-    {
-        Id = Guid.NewGuid ()
-        Items = [|
-            {
-                Id = Guid.NewGuid ()
-                Item = items.[0]
-                Count = 5
-            }
-        |]
-        Submitted = DateTimeOffset.Now
-        ZipCode = "31426"
-    }
+    // {
+    //     Id = Guid.NewGuid ()
+    //     Items = [|
+    //         {
+    //             Id = Guid.NewGuid ()
+    //             Item = items.[0]
+    //             Count = 5
+    //         }
+    //     |]
+    //     Submitted = DateTimeOffset.Now
+    //     ZipCode = "31426"
+    // }
 |]
 
 type SubmissionProvider = {
