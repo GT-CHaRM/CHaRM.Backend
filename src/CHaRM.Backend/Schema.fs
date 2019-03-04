@@ -7,7 +7,7 @@ open GraphQL.FSharp.Server
 open Microsoft.AspNetCore.Authorization
 
 open CHaRM.Backend.Model
-open CHaRM.Backend.Provider
+open CHaRM.Backend.Services
 
 type Role =
     | LoggedIn
@@ -87,14 +87,14 @@ let UserGraph =
         ]
     }
 
-let Query (userProvider: IUserProvider) =
+let Query (items: IItemService) (submissions: ISubmissionService) (users: IUserService) =
     query [
         endpoint __ "Items" {
             authorize Visitor
             description "List of items available to submit"
             resolve (
                 fun _ _ ->
-                    itemProvider.All ()
+                    items.All ()
             )
         }
 
@@ -102,14 +102,14 @@ let Query (userProvider: IUserProvider) =
             authorize Visitor
             resolve (
                 fun _ args ->
-                    itemProvider.Get args
+                    items.Get args
             )
         }
 
         endpoint __ "Submissions" {
             authorize Visitor
             resolve (
-                fun _ _ -> submissionProvider.All ()
+                fun _ _ -> submissions.All ()
             )
         }
 
@@ -117,7 +117,7 @@ let Query (userProvider: IUserProvider) =
             authorize Visitor
             resolve (
                 fun _ args ->
-                    submissionProvider.Get args
+                    submissions.Get args
             )
         }
 
@@ -125,18 +125,18 @@ let Query (userProvider: IUserProvider) =
             authorize LoggedIn
             resolve (
                 fun _ _ ->
-                    userProvider.Me ()
+                    users.Me ()
             )
         }
     ]
 
 
-let Mutation (userProvider: IUserProvider) =
+let Mutation (items: IItemService) (submissions: ISubmissionService) (users: IUserService) =
     mutation [
         endpoint __ "CreateItem" {
             resolve (
                 fun _ args ->
-                    itemProvider.Create args
+                    items.Create args
             )
         }
 
@@ -144,14 +144,14 @@ let Mutation (userProvider: IUserProvider) =
             authorize Visitor
             resolve (
                 fun _ args ->
-                    submissionProvider.Create args
+                    submissions.Create args
             )
         }
 
         endpoint __ "Login" {
             resolve (
                 fun _ (args: {|Username: string; Password: string|}) ->
-                    userProvider.Login args.Username args.Password
+                    users.Login args.Username args.Password
             )
         }
 
@@ -159,15 +159,15 @@ let Mutation (userProvider: IUserProvider) =
         endpoint __ "Register" {
             resolve (
                 fun _ (args: {|Username: string; Email: string; Password: string|}) ->
-                    userProvider.Register args.Username args.Password args.Email
+                    users.Register args.Username args.Password args.Email
             )
         }
     ]
 
-let Schema (userProvider: IUserProvider) =
+let Schema (items: IItemService, submissions: ISubmissionService, users: IUserService) =
     schema {
-        query (Query userProvider)
-        mutation (Mutation userProvider)
+        query (Query items submissions users)
+        mutation (Mutation items submissions users)
         types [
             ItemTypeGraph
             ItemSubmissionBatchGraph

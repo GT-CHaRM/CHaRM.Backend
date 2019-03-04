@@ -22,8 +22,7 @@ open Microsoft.EntityFrameworkCore
 open Microsoft.IdentityModel.Tokens
 
 open CHaRM.Backend.Model
-open CHaRM.Backend.Provider
-open CHaRM.Backend.Util
+open CHaRM.Backend.Services
 
 type ApplicationDbContext (context: DbContextOptions<ApplicationDbContext>) =
     inherit IdentityDbContext<User> (context)
@@ -136,9 +135,14 @@ let configureServices (services: IServiceCollection) =
     )
     |> ignore
 
-    services.AddTransient<IUserProvider, UserProvider> ()
+    services.AddTransient<IItemService, ItemService> ()
     |> ignore
 
+    services.AddTransient<ISubmissionService, SubmissionService> ()
+    |> ignore
+
+    services.AddTransient<IUserService, UserService> ()
+    |> ignore
 
     services.AddCors () |> ignore
     services

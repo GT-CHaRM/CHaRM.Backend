@@ -1,5 +1,5 @@
 [<AutoOpen>]
-module CHaRM.Backend.Provider.User
+module CHaRM.Backend.Services.User
 
 open System
 open System.Security.Claims
@@ -95,21 +95,21 @@ let register
         | _, IdentityError error -> return Error error
     }
 
-type IUserProvider =
+type IUserService =
     abstract member All: unit -> User [] Task
     abstract member Get: id: Guid -> User option Task
     abstract member Me: unit -> User option Task
     abstract member Login: username: string -> password: string -> Result<string, string> Task
     abstract member Register: username: string -> password: string -> email: string -> Result<string, string> Task
 
-type UserProvider (context, config, users, signIn) =
+type UserService (context, config, users, signIn) =
     let all () = all users
     let get id = get users id
     let me () = me context users
     let login username password = login config signIn users username password
     let register username password email = register config users username password email
 
-    interface IUserProvider with
+    interface IUserService with
         member __.All () = all ()
         member __.Get id = get id
         member __.Me () = me ()

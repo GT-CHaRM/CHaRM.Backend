@@ -13,9 +13,9 @@
     <Compile Include="Util.fs" />
     <Compile Include="Model.fs" />
     <Compile Include="Jwt.fs" />
-    <Compile Include="Provider/Item.fs" />
-    <Compile Include="Provider/Submission.fs" />
-    <Compile Include="Provider/User.fs" />
+    <Compile Include="Services/Item.fs" />
+    <Compile Include="Services/Submission.fs" />
+    <Compile Include="Services/User.fs" />
     <Compile Include="Schema.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
@@ -25,7 +25,6 @@
     <PackageReference Include="GraphQL" Version="2.4.0" />
     <PackageReference Include="GraphQL.FSharp" Version="0.0.4" />
     <PackageReference Include="GraphQL.FSharp.Server" Version="0.0.4" />
-    <PackageReference Include="GraphQL.Server.Authorization.AspNetCore" Version="3.4.0" />
     <PackageReference Include="GraphQL.Server.Transports.AspNetCore" Version="3.4.0" />
     <PackageReference Include="GraphQL.Server.Transports.WebSockets" Version="3.4.0" />
     <PackageReference Include="GraphQL.Server.Ui.Playground" Version="3.4.0" />
