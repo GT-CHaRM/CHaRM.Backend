@@ -27,13 +27,13 @@ type Submission = {
 }
 
 type UserType =
-| Visitor
-| Employee
-| Administrator
+| Visitor = 0
+| Employee = 1
+| Administrator = 2
 
 type User () =
     inherit IdentityUser ()
 
-    member val Type: UserType = Visitor with get, set
+    member val Type: UserType = UserType.Visitor with get, set
     member val ZipCode: string = null with get, set
     member val Submissions: Submission [] = [||] with get, set

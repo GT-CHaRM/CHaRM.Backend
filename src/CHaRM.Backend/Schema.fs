@@ -1,13 +1,37 @@
 module CHaRM.Backend.Schema
 
 open System
+open System.Security.Claims
 open System.Threading.Tasks
+open FSharp.Utils.Tasks
 open GraphQL.FSharp
 open GraphQL.FSharp.Server
 open Microsoft.AspNetCore.Authorization
+open Microsoft.AspNetCore.Identity
 
 open CHaRM.Backend.Model
 open CHaRM.Backend.Services
+
+[<CLIMutable>]
+type UserTypeRequirement =
+    {
+        Type: UserType
+    }
+
+    interface IAuthorizationRequirement
+
+type UserTypeHandler (userManager: UserManager<User>) =
+    inherit AuthorizationHandler<UserTypeRequirement> ()
+
+    override __.HandleRequirementAsync (ctx, requirement) =
+        upcast task {
+            let! user = userManager.FindByNameAsync ctx.User.Identity.Name
+            if user.Type = requirement.Type
+            then ctx.Succeed requirement
+        }
+
+type AuthorizationPolicyBuilder with
+    member this.RequireUserType ``type`` = this.AddRequirements {Type = ``type``}
 
 type Role =
     | LoggedIn
@@ -17,11 +41,21 @@ type Role =
 
     member this.Authorize (_services: IServiceProvider, builder: AuthorizationPolicyBuilder) =
         match this with
-        | LoggedIn -> builder
-        | Visitor -> builder
-        | Employee -> builder
-        | Administrator -> builder
-
+        | LoggedIn ->
+            builder
+                .RequireAuthenticatedUser()
+        | Visitor ->
+            builder
+                .RequireAuthenticatedUser()
+                .RequireUserType(UserType.Visitor)
+        | Employee ->
+            builder
+                .RequireAuthenticatedUser()
+                .RequireUserType(UserType.Employee)
+        | Administrator ->
+            builder
+                .RequireAuthenticatedUser()
+                .RequireUserType(UserType.Administrator)
 
 let ItemTypeGraph =
     object<ItemType> {
@@ -68,10 +102,15 @@ let SubmissionGraph =
         ]
     }
 
+let UserTypeGraph = enum.auto<UserType> ()
+
 let UserGraph =
     object<User> {
         name "User"
         fields [
+            field UserTypeGraph {
+                prop (fun this -> Task.FromResult this.Type)
+            }
             field __ {
                 prop (fun this -> Task.FromResult this.UserName)
             }
@@ -90,77 +129,48 @@ let UserGraph =
 let Query (items: IItemService) (submissions: ISubmissionService) (users: IUserService) =
     query [
         endpoint __ "Items" {
-            authorize Visitor
             description "List of items available to submit"
-            resolve (
-                fun _ _ ->
-                    items.All ()
-            )
+            resolve (fun _ _ -> items.All ())
         }
 
         endpoint __ "Item" {
-            authorize Visitor
-            resolve (
-                fun _ args ->
-                    items.Get args
-            )
+            resolve (fun _ args -> items.Get args)
         }
 
         endpoint __ "Submissions" {
             authorize Visitor
-            resolve (
-                fun _ _ -> submissions.All ()
-            )
+            resolve (fun _ _ -> submissions.All ())
         }
 
         endpoint __ "Submission" {
             authorize Visitor
-            resolve (
-                fun _ args ->
-                    submissions.Get args
-            )
+            resolve (fun _ args -> submissions.Get args)
         }
 
         endpoint __ "Me" {
             authorize LoggedIn
-            resolve (
-                fun _ _ ->
-                    users.Me ()
-            )
+            resolve (fun _ _ -> users.Me ())
         }
     ]
 
-
+// TODO: Add submission log ability for guests?
 let Mutation (items: IItemService) (submissions: ISubmissionService) (users: IUserService) =
     mutation [
         endpoint __ "CreateItem" {
-            resolve (
-                fun _ args ->
-                    items.Create args
-            )
+            resolve (fun _ args -> items.Create args)
         }
 
         endpoint __ "CreateSubmission" {
-            authorize Visitor
-            resolve (
-                fun _ args ->
-                    submissions.Create args
-            )
+            resolve (fun _ args -> submissions.Create args)
         }
 
         endpoint __ "Login" {
-            resolve (
-                fun _ (args: {|Username: string; Password: string|}) ->
-                    users.Login args.Username args.Password
-            )
+            resolve (fun _ (args: {|Username: string; Password: string|}) -> users.Login args.Username args.Password)
         }
 
         // TODO: Fix issue with getting failure after the first mistake
         endpoint __ "Register" {
-            resolve (
-                fun _ (args: {|Username: string; Email: string; Password: string|}) ->
-                    users.Register args.Username args.Password args.Email
-            )
+            resolve (fun _ (args: {|Username: string; Email: string; Password: string|}) -> users.Register args.Username args.Password args.Email)
         }
     ]
 
