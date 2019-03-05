@@ -3,59 +3,44 @@ module CHaRM.Backend.Schema
 open System
 open System.Security.Claims
 open System.Threading.Tasks
-open FSharp.Utils.Tasks
+open FSharp.Utils
 open GraphQL.FSharp
 open GraphQL.FSharp.Server
 open Microsoft.AspNetCore.Authorization
-open Microsoft.AspNetCore.Identity
 
 open CHaRM.Backend.Model
 open CHaRM.Backend.Services
 
-[<CLIMutable>]
-type UserTypeRequirement =
-    {
-        Type: UserType
-    }
-
-    interface IAuthorizationRequirement
-
-type UserTypeHandler (userManager: UserManager<User>) =
-    inherit AuthorizationHandler<UserTypeRequirement> ()
-
-    override __.HandleRequirementAsync (ctx, requirement) =
-        upcast task {
-            let! user = userManager.FindByNameAsync ctx.User.Identity.Name
-            if user.Type = requirement.Type
-            then ctx.Succeed requirement
-        }
+let (|Nullable|) x = Option.ofNullObj x
 
 type AuthorizationPolicyBuilder with
-    member this.RequireUserType ``type`` = this.AddRequirements {Type = ``type``}
+    member this.RequireUserType (``type``: UserType) =
+        this.RequireClaim (ClaimTypes.Role, Enum.GetName (typeof<UserType>, ``type``))
 
-type Role =
+type Policy =
     | LoggedIn
     | Visitor
     | Employee
     | Administrator
 
-    member this.Authorize (_services: IServiceProvider, builder: AuthorizationPolicyBuilder) =
-        match this with
-        | LoggedIn ->
-            builder
-                .RequireAuthenticatedUser()
-        | Visitor ->
-            builder
-                .RequireAuthenticatedUser()
-                .RequireUserType(UserType.Visitor)
-        | Employee ->
-            builder
-                .RequireAuthenticatedUser()
-                .RequireUserType(UserType.Employee)
-        | Administrator ->
-            builder
-                .RequireAuthenticatedUser()
-                .RequireUserType(UserType.Administrator)
+    interface IPolicy with
+        member this.Authorize builder =
+            match this with
+            | LoggedIn ->
+                builder
+                    .RequireAuthenticatedUser()
+            | Visitor ->
+                builder
+                    .RequireAuthenticatedUser()
+                    .RequireUserType(UserType.Visitor)
+            | Employee ->
+                builder
+                    .RequireAuthenticatedUser()
+                    .RequireUserType(UserType.Employee)
+            | Administrator ->
+                builder
+                    .RequireAuthenticatedUser()
+                    .RequireUserType(UserType.Administrator)
 
 let ItemTypeGraph =
     object<ItemType> {

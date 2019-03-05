@@ -93,14 +93,18 @@ let countLOC (file: FileInfo) =
 Target.create "CountLOC" (fun _ ->
     srcProjects
     |> Array.collect getProjectFiles
-    |> Array.map countLOC
-    |> Array.sum
+    |> Array.sumBy countLOC
     |> Trace.logf "LOC: %i\n"
 )
+
+Target.create "Reload" ignore
 
 open Fake.Core.TargetOperators
 
 "Restore" ==> "Build"
 "Restore" ==> "Run"
+
+"Clean" ==> "Reload"
+"Restore" ==> "Reload"
 
 Target.runOrDefault "Run"

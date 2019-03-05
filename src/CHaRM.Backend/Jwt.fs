@@ -2,8 +2,10 @@ module CHaRM.Backend.Jwt
 
 open System
 open System.IdentityModel.Tokens.Jwt
+open System.Threading.Tasks
 open System.Security.Claims
 open System.Text
+open FSharp.Utils
 open FSharp.Utils.Tasks
 open Microsoft.AspNetCore.Identity
 open Microsoft.Extensions.Configuration
@@ -13,33 +15,25 @@ open CHaRM.Backend.Model
 
 // https://medium.com/@ozgurgul/asp-net-core-2-0-webapi-jwt-authentication-with-identity-mysql-3698eeba6ff8
 
-let internal getClaims
-    (users: UserManager<User>)
-    (user: #User) =
-    task {
-        let! userRoles = users.GetRolesAsync user
-        return [
-            yield Claim (
-                ``type`` = JwtRegisteredClaimNames.Sub,
-                value = user.NormalizedEmail
-            )
-            yield Claim (
-                ``type`` = JwtRegisteredClaimNames.Jti,
-                value = Guid.NewGuid().ToString()
-            )
-            yield Claim (
-                ``type`` = ClaimTypes.NameIdentifier,
-                value = user.Id
-            )
-            yield! [
-                for role in userRoles do
-                    yield Claim (
-                        ``type`` = ClaimTypes.Role,
-                        value = role
-                    )
-            ]
-        ]
-    }
+let internal getClaims (user: #User) =
+    Task.FromResult [
+        Claim (
+            ``type`` = JwtRegisteredClaimNames.Sub,
+            value = user.NormalizedEmail
+        )
+        Claim (
+            ``type`` = JwtRegisteredClaimNames.Jti,
+            value = string Guid.Random
+        )
+        Claim (
+            ``type`` = ClaimTypes.NameIdentifier,
+            value = user.Id
+        )
+        Claim (
+            ``type`` = ClaimTypes.Role,
+            value = string user.Type
+        )
+    ]
 
 let internal makeHmacSha256SigningCredentials key =
     SigningCredentials (
@@ -64,10 +58,9 @@ let internal makeToken token = JwtSecurityTokenHandler().WriteToken token
 
 let generateJwtToken
     (config: IConfigurationRoot)
-    (users: UserManager<User>)
     (user: #User) =
     task {
-        let! claims = getClaims users user
+        let! claims = getClaims user
 
         return
             JwtSecurityToken (

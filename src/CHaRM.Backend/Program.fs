@@ -41,22 +41,6 @@ let getConfig () =
         .AddJsonFile("appsettings.json")
         .Build()
 
-let addRoles (roleManager: RoleManager<IdentityRole>) =
-    [|"Visitor"; "Employee"; "Administrator"|]
-    |> Array.iter (fun role ->
-        let task =
-            task {
-                let! exists = roleManager.RoleExistsAsync role
-                if not exists then
-                    do!
-                        IdentityRole role
-                        |> roleManager.CreateAsync
-                        :> Task
-            }
-            :> Task
-        task.Wait ()
-    )
-
 let configure (app: IApplicationBuilder) =
     app.UseAuthentication()
     |> ignore
@@ -77,7 +61,6 @@ let configure (app: IApplicationBuilder) =
     app.UseGraphQLPlayground (GraphQLPlaygroundOptions ()) |> ignore
 
     ensureDbCreated (DependencyInjection.resolve app.ApplicationServices)
-    addRoles (DependencyInjection.resolve app.ApplicationServices)
 
     ()
 
@@ -101,8 +84,6 @@ let configureServices (services: IServiceCollection) =
             fun options ->
                 options.User.RequireUniqueEmail <- true
         )
-        .AddRoles<IdentityRole>()
-        .AddRoleManager<RoleManager<IdentityRole>>()
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders()
     |> ignore
@@ -157,7 +138,7 @@ let configureServices (services: IServiceCollection) =
         )
         .AddWebSockets()
         .AddDefaultFieldNameConverter()
-        .AddAuthorization<Schema.Role> id
+        .AddAuthorization<Schema.Policy> id
         |> ignore
 
     ()

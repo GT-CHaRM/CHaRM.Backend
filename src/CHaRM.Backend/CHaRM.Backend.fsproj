@@ -23,8 +23,8 @@
     <PackageReference Include="FSharp.Utils" Version="0.0.4" />
     <PackageReference Include="FSValidation" Version="0.0.5" />
     <PackageReference Include="GraphQL" Version="2.4.0" />
-    <PackageReference Include="GraphQL.FSharp" Version="0.0.4" />
-    <PackageReference Include="GraphQL.FSharp.Server" Version="0.0.4" />
+    <PackageReference Include="GraphQL.FSharp" Version="0.0.5" />
+    <PackageReference Include="GraphQL.FSharp.Server" Version="0.0.5" />
     <PackageReference Include="GraphQL.Server.Transports.AspNetCore" Version="3.4.0" />
     <PackageReference Include="GraphQL.Server.Transports.WebSockets" Version="3.4.0" />
     <PackageReference Include="GraphQL.Server.Ui.Playground" Version="3.4.0" />

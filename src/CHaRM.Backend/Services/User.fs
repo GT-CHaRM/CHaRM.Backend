@@ -65,7 +65,7 @@ let login
         match result with
         | SignInSuccess ->
             let! user = users.FindByNameAsync username
-            let! token = generateJwtToken config users user
+            let! token = generateJwtToken config user
             return Ok token
         | SignInError error -> return Error error
     }
@@ -86,13 +86,11 @@ let register
                 user = user,
                 password = password
             )
-        let! roleResult = users.AddToRoleAsync (user, "Visitor")
-        match result, roleResult with
-        | IdentitySuccess, IdentitySuccess ->
-            let! token = generateJwtToken config users user
+        match result with
+        | IdentitySuccess ->
+            let! token = generateJwtToken config user
             return Ok token
-        | IdentityError error, _
-        | _, IdentityError error -> return Error error
+        | IdentityError error -> return Error error
     }
 
 type IUserService =
