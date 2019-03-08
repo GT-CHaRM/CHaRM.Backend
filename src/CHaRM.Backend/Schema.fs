@@ -7,6 +7,7 @@ open FSharp.Utils
 open GraphQL.FSharp
 open GraphQL.FSharp.Server
 open Microsoft.AspNetCore.Authorization
+open Validation.Builder
 
 open CHaRM.Backend.Model
 open CHaRM.Backend.Services
@@ -69,24 +70,6 @@ let ItemSubmissionBatchGraph =
         ]
     }
 
-let SubmissionGraph =
-    object<Submission> {
-        fields [
-            field __ {
-                prop (fun this -> Task.FromResult this.Id)
-            }
-            field __ {
-                prop (fun this -> Task.FromResult this.Items)
-            }
-            field __ {
-                prop (fun this -> Task.FromResult this.Submitted)
-            }
-            field __ {
-                prop (fun this -> Task.FromResult (Option.ofObj this.ZipCode))
-            }
-        ]
-    }
-
 let UserTypeGraph = enum.auto<UserType> ()
 
 let UserGraph =
@@ -111,6 +94,27 @@ let UserGraph =
         ]
     }
 
+let SubmissionGraph =
+    object<Submission> {
+        fields [
+            field __ {
+                prop (fun this -> Task.FromResult this.Id)
+            }
+            field __ {
+                prop (fun this -> Task.FromResult this.Visitor)
+            }
+            field __ {
+                prop (fun this -> Task.FromResult this.Items)
+            }
+            field __ {
+                prop (fun this -> Task.FromResult this.Submitted)
+            }
+            field __ {
+                prop (fun this -> Task.FromResult (Option.ofObj this.ZipCode))
+            }
+        ]
+    }
+
 let Query (items: IItemService) (submissions: ISubmissionService) (users: IUserService) =
     query [
         endpoint __ "Items" {
@@ -119,7 +123,12 @@ let Query (items: IItemService) (submissions: ISubmissionService) (users: IUserS
         }
 
         endpoint __ "Item" {
-            resolve (fun _ args -> items.Get args)
+            validate (
+                fun (args: {|Id: Guid|}) -> validation {
+                    return args
+                }
+            )
+            resolve (fun _ args -> items.Get args.Id)
         }
 
         endpoint __ "Submissions" {
@@ -129,12 +138,32 @@ let Query (items: IItemService) (submissions: ISubmissionService) (users: IUserS
 
         endpoint __ "Submission" {
             authorize Visitor
-            resolve (fun _ args -> submissions.Get args)
+            validate (
+                fun (args: {|Id: Guid|}) -> validation {
+                    return args
+                }
+            )
+            resolve (fun _ args -> submissions.Get args.Id)
         }
 
         endpoint __ "Me" {
             authorize LoggedIn
             resolve (fun _ _ -> users.Me ())
+        }
+
+        endpoint __ "AllSubmissions" {
+            authorize Employee
+            resolve (fun _ _ -> submissions.All ())
+        }
+
+        endpoint __ "GetSubmission" {
+            authorize Employee
+            validate (
+                fun (args: {|Id: Guid|}) -> validation {
+                    return args
+                }
+            )
+            resolve (fun _ args -> submissions.Get args.Id)
         }
     ]
 
@@ -142,20 +171,62 @@ let Query (items: IItemService) (submissions: ISubmissionService) (users: IUserS
 let Mutation (items: IItemService) (submissions: ISubmissionService) (users: IUserService) =
     mutation [
         endpoint __ "CreateItem" {
-            resolve (fun _ args -> items.Create args)
+            validate (
+                fun (args: {|Name: string|}) -> validation {
+                    return args
+                }
+            )
+            resolve (fun _ args -> items.Create args.Name)
         }
 
         endpoint __ "CreateSubmission" {
-            resolve (fun _ args -> submissions.Create args)
+            validate (
+                fun (args: {|Items: Guid []; ZipCode: string|}) -> validation {
+                    return args
+                }
+            )
+            resolve (fun _ args -> submissions.Create args.Items args.ZipCode)
         }
 
         endpoint __ "Login" {
-            resolve (fun _ (args: {|Username: string; Password: string|}) -> users.Login args.Username args.Password)
+            validate (
+                fun (args: {|Username: string; Password: string|}) -> validation {
+                    return args
+                }
+            )
+            resolve (fun _ args -> users.Login args.Username args.Password)
         }
 
         // TODO: Fix issue with getting failure after the first mistake
         endpoint __ "Register" {
-            resolve (fun _ (args: {|Username: string; Email: string; Password: string|}) -> users.Register args.Username args.Password args.Email)
+            validate (
+                fun (args: {|Username: string; Email: string; Password: string|}) -> validation {
+                    return args
+                }
+            )
+            resolve (fun _ args -> users.Register args.Username args.Password args.Email)
+        }
+
+        endpoint __ "ModifySubmission" {
+            authorize Employee
+            validate (
+                fun (args: {|Id: Guid; Time: DateTimeOffset; Items: Guid []|}) -> validation {
+                    return args
+                }
+            )
+            // TODO: Fix Time and zipCode
+            resolve (fun _ args -> submissions.Update args.Id args.Items "")
+        }
+
+        endpoint __ "RemoveSubmission" {
+            authorize Employee
+            validate (
+                fun (args: {|Id: Guid|}) -> validation {
+                    return args
+                }
+            )
+            // TODO: Fix Time and zipCode
+            resolve (fun _ args -> submissions.Delete args.Id)
         }
     ]
 

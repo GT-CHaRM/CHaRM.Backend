@@ -8,8 +8,8 @@ open CHaRM.Backend.Model
 
 type IItemService =
     abstract member All: unit -> ItemType [] Task
-    abstract member Create: {|Name: string|} -> ItemType Task
-    abstract member Get: {|Id: Guid|} -> ItemType Task
+    abstract member Create: name: string -> ItemType Task
+    abstract member Get: id: Guid -> ItemType Task
 
 
 (* Mock implementations *)
@@ -35,14 +35,14 @@ let mutable items = [|
 type ItemService () =
     interface IItemService with
         member __.All () = Task.FromResult items
-        member __.Create args =
+        member __.Create name =
             let item = {
                 Id = Guid.NewGuid ()
-                Name = args.Name
+                Name = name
             }
             items <- [|yield item; yield! items|]
             Task.FromResult item
-        member __.Get args =
+        member __.Get id =
             items
-            |> Array.find (fun {Id = id} -> args.Id = id)
+            |> Array.find (fun item -> item.Id = id)
             |> Task.FromResult

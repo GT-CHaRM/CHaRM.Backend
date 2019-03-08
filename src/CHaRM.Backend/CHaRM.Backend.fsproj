@@ -11,11 +11,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Util.fs" />
+    <Compile Include="Error.fs" />
     <Compile Include="Model.fs" />
     <Compile Include="Jwt.fs" />
+    <Compile Include="Services/User.fs" />
     <Compile Include="Services/Item.fs" />
     <Compile Include="Services/Submission.fs" />
-    <Compile Include="Services/User.fs" />
     <Compile Include="Schema.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

@@ -1,4 +1,4 @@
-module CHaRM.Backend.Model
+module rec CHaRM.Backend.Model
 
 (* This module contains the classes that define the model of our app. *)
 
@@ -21,6 +21,7 @@ type ItemSubmissionBatch = {
 [<CLIMutable>]
 type Submission = {
     Id: Guid
+    Visitor: User
     Submitted: DateTimeOffset
     Items: ItemSubmissionBatch []
     ZipCode: string
