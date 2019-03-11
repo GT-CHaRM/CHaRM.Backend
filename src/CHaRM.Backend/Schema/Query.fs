@@ -13,11 +13,16 @@ let Item (items: IItemService) =
     query "Item" [
         endpoint __ "All" {
             description "List of items available to submit"
+
             resolve (fun _ _ -> items.All ())
         }
 
         endpoint __ "Single" {
             description "A single item identified by its GUID"
+            argumentDescription [
+                "Id" => "The GUID of the item"
+            ]
+
             validate (
                 fun (args: {|Id: Guid|}) -> validation {
                     return args
@@ -31,12 +36,17 @@ let Submission (submissions: ISubmissionService) =
     query "Submission" [
         endpoint __ "All" {
             description "List all submissions in the system"
+
             authorize Employee
             resolve (fun _ _ -> submissions.All ())
         }
 
         endpoint __ "Get" {
             description "A single submission identified by its GUID"
+            argumentDescription [
+                "Id" => "The GUID of the submission"
+            ]
+
             authorize Employee
             validate (
                 fun (args: {|Id: Guid|}) -> validation {
@@ -48,12 +58,17 @@ let Submission (submissions: ISubmissionService) =
 
         endpoint __ "AllMine" {
             description "List of all submissions by the current user"
+
             authorize Visitor
             resolve (fun _ _ -> submissions.All ())
         }
 
         endpoint __ "GetMine" {
             description "A single submission by the current user identified by its GUID"
+            argumentDescription [
+                "Id" => "The GUID of the submission"
+            ]
+
             authorize Visitor
             validate (
                 fun (args: {|Id: Guid|}) -> validation {
@@ -68,6 +83,7 @@ let User (users: IUserService) =
     query "User" [
         endpoint __ "Me" {
             description "The current user"
+
             authorize LoggedIn
             resolve (fun _ _ -> users.Me ())
         }
