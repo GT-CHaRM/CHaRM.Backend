@@ -1,0 +1,18 @@
+version: "3"
+services:
+    server:
+        build:
+            context: ./
+            dockerfile: ./docker/server/Dockerfile
+        ports:
+            - 5000:5000
+        depends_on:
+            - database
+    database:
+        build:
+            context: ./docker/database
+            dockerfile: ./Dockerfile
+        environment:
+            - SA_PASSWORD=3OXa0H8T3U1wLh29
+        ports:
+            - 1433:1433

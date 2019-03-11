@@ -22,6 +22,7 @@ open Microsoft.EntityFrameworkCore
 open Microsoft.IdentityModel.Tokens
 
 open CHaRM.Backend.Model
+open CHaRM.Backend.Schema
 open CHaRM.Backend.Services
 
 type ApplicationDbContext (context: DbContextOptions<ApplicationDbContext>) =
@@ -128,9 +129,7 @@ let configureServices (services: IServiceCollection) =
     services.AddCors () |> ignore
     services
         .AddSingleton<Schema>(
-            implementationFactory =
-                fun provider ->
-                    Schema.Schema (DependencyInjection.resolve provider)
+            implementationFactory = Func<_, _> (DependencyInjection.resolve >> Schema)
         )
         .AddGraphQL(fun options ->
             options.ExposeExceptions <- true
@@ -138,8 +137,8 @@ let configureServices (services: IServiceCollection) =
         )
         .AddWebSockets()
         .AddDefaultFieldNameConverter()
-        .AddAuthorization<Schema.Policy> id
-        |> ignore
+        .AddAuthorization<Policy> id
+    |> ignore
 
     ()
 
