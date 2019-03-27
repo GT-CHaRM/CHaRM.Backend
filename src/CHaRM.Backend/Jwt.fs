@@ -27,7 +27,7 @@ let internal getClaims (user: #User) =
         )
         Claim (
             ``type`` = ClaimTypes.NameIdentifier,
-            value = user.Id
+            value = string user.Id
         )
         Claim (
             ``type`` = ClaimTypes.Role,

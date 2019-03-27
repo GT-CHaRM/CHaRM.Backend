@@ -14,7 +14,7 @@ open CHaRM.Backend.Services
 let Item (items: IItemService) =
     // TODO: Add a way to add item descriptions for tooltips
     endpoints [
-        endpoint "Create" __ [
+        endpoint "CreateItem" __ [
             description "Adds a new item that can be submitted"
             argumentDocumentation [
                 "Name" => "The name of the item"
@@ -31,7 +31,7 @@ let Item (items: IItemService) =
 
 let Submission (users: IUserService) (submissions: ISubmissionService) =
     endpoints [
-        endpoint "CreateSelf" __ [
+        endpoint "CreateSubmissionSelf" __ [
             description "Adds a new submission for the current user"
             argumentDocumentation [
                 "Items" => "The list of the GUIDs of the items being submitted"
@@ -52,7 +52,7 @@ let Submission (users: IUserService) (submissions: ISubmissionService) =
             )
         ]
 
-        endpoint "Modify" __ [
+        endpoint "ModifySubmission" __ [
             authorize Employee
             description "Modifies the contents of an existing submission"
             argumentDocumentation [
@@ -71,7 +71,7 @@ let Submission (users: IUserService) (submissions: ISubmissionService) =
             resolve.endpoint (fun args -> task { return! submissions.Update args.Id args.Items "" })
         ]
 
-        endpoint "Remove" __ [
+        endpoint "RemoveSubmission" __ [
             description "Removes an existing submission"
             argumentDocumentation [
                 "Id" => "The Id of the submission"
@@ -90,7 +90,7 @@ let Submission (users: IUserService) (submissions: ISubmissionService) =
 
 let User (users: IUserService) =
     endpoints [
-        endpoint "Login" __ [
+        endpoint "LoginUser" __ [
             description "Attempts to login with the provided username and password and returns a JSON web token (JWT) on success."
             argumentDocumentation [
                 "Username" => "The user's uesrname"
@@ -106,7 +106,7 @@ let User (users: IUserService) =
         ]
 
         // TODO: Fix issue with getting failure after the first mistake
-        endpoint "Register" __ [
+        endpoint "RegisterUser" __ [
             description "Attempts to register with the provided information and returns a JSON web token (JWT) on success."
             argumentDocumentation [
                 "Username" => "The user's username"

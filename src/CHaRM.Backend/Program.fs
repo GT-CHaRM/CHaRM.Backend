@@ -24,12 +24,10 @@ open CHaRM.Backend.Model
 open CHaRM.Backend.Schema
 open CHaRM.Backend.Services
 
-let ensureDbCreated (config: IConfigurationRoot) =
-    let dbConfig =
-        DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlServer(config.GetConnectionString "Database")
-            .Options
-    use context = new ApplicationDbContext (dbConfig)
+let ensureDbCreated (app: IApplicationBuilder) =
+    use serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope()
+    let context = serviceScope.ServiceProvider.GetRequiredService<ApplicationDbContext> ()
+    // context.Database.EnsureDeleted () |> ignore
     context.Database.EnsureCreated () |> ignore
 
 let getConfig () =
@@ -59,7 +57,7 @@ let configure (app: IApplicationBuilder) =
     app.UseGraphQLWebSockets<Schema> "/graphql" |> ignore
     app.UseGraphQLPlayground (GraphQLPlaygroundOptions ()) |> ignore
 
-    ensureDbCreated (DependencyInjection.resolve app.ApplicationServices)
+    ensureDbCreated app
 
     ()
 

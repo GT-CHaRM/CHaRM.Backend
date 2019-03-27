@@ -37,25 +37,28 @@ let makeItemBatch (itemService: IItemService) items =
                 items
                 |> Array.groupBy id
                 |> Array.map (fun (id, group) ->
+                    let item =
+                        allItems
+                        |> Array.tryFind (fun item -> item.Id = id)
+                        |> Option.getOrRaiseWith (fun () -> raise (ItemNotFoundException id))
                     let count = Array.length group
                     {
                         Id = Guid.NewGuid ()
-                        Item =
-                            allItems
-                            |> Array.tryFind (fun item -> item.Id = id)
-                            |> Option.getOrRaiseWith (fun () -> raise (ItemNotFoundException id))
+                        Item = item
+                        ItemKey = item.Id
                         Count = count
                     })
                 |> Ok
         with :? ItemNotFoundException as exn -> return Error [ItemNotFound exn.Id]
     }
 
-let create (dbContext: ApplicationDbContext) itemService (itemId: Guid) visitor items zipCode =
+let create (db: ApplicationDbContext) itemService (itemId: Guid) visitor items zipCode =
     task {
         let! items = % makeItemBatch itemService items
-        let! result = dbContext.Submissions.AddAsync {
+        let! result = db.Submissions.AddAsync {
             Id = itemId
             Visitor = visitor
+            VisitorKey = visitor.Id
             Submitted = DateTimeOffset.Now
             Items = items
             ZipCode = zipCode
@@ -63,18 +66,21 @@ let create (dbContext: ApplicationDbContext) itemService (itemId: Guid) visitor 
         return Ok result.Entity
     }
 
-type SubmissionService (dbContext, itemService) =
-    let create = create dbContext itemService
+type SubmissionService (db, itemService) =
+    let create = create db itemService
 
     interface ISubmissionService with
-        member __.All () = task { return! dbContext.Submissions.ToArrayAsync () }
+        member __.All () = task { return! db.Submissions.ToArrayAsync () }
 
-        member __.Create visitor items zipCode = create (Guid.NewGuid ()) visitor items zipCode
+        member __.Create visitor items zipCode =
+            db.changes {
+                return! create (Guid.NewGuid ()) visitor items zipCode
+            }
 
         member this.Delete id =
-            task {
+            db.changes {
                 let! submission = % (this :> ISubmissionService).Get id
-                let result = dbContext.Submissions.Remove submission
+                let result = db.Submissions.Remove submission
                 return Ok result.Entity
             }
 
@@ -85,15 +91,15 @@ type SubmissionService (dbContext, itemService) =
                     then None
                     else Some ()
 
-                match! dbContext.FindAsync id with
+                match! db.FindAsync id with
                 | DefaultSubmission -> return Error [SubmissionDoesNotExist id]
                 | submission -> return Ok submission
             }
 
         member this.Update id items zipCode =
-            task {
+            db.changes {
                 let! submission = % (this :> ISubmissionService).Get id
                 let! items = % makeItemBatch itemService items
-                let result = dbContext.Submissions.Update {submission with Items = items; ZipCode = zipCode}
+                let result = db.Submissions.Update {submission with Items = items; ZipCode = zipCode}
                 return Ok result.Entity
             }

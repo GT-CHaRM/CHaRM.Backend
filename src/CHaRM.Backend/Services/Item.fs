@@ -14,16 +14,16 @@ type IItemService =
     abstract member Create: name: string -> ItemType Task
     abstract member Get: id: Guid -> ItemType Task
 
-type ItemService (dbContext: ApplicationDbContext) =
+type ItemService (db: ApplicationDbContext) =
     interface IItemService with
-        member __.All () = task { return! dbContext.Items.ToArrayAsync () }
+        member __.All () = task { return! db.Items.ToArrayAsync () }
         member __.Create name =
-            task {
+            db.changes {
                 let item = {
                     Id = Guid.NewGuid ()
                     Name = name
                 }
-                let! changeTracking = dbContext.Items.AddAsync item
+                let changeTracking = db.Items.Add item
                 return changeTracking.Entity
             }
-        member __.Get id = task { return! dbContext.Items.FindAsync id }
+        member __.Get id = task { return! db.Items.FindAsync id }

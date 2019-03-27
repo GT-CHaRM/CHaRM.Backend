@@ -13,13 +13,13 @@ open CHaRM.Backend.Services
 
 let Item (items: IItemService) =
     endpoints [
-        endpoint "All" __ [
+        endpoint "Items" __ [
             description "List of items available to submit"
 
             resolve.endpoint (fun _ -> task { return! items.All () })
         ]
 
-        endpoint "Single" __ [
+        endpoint "Item" __ [
             description "A single item identified by its GUID"
             argumentDocumentation [
                 "Id" => "The GUID of the item"
@@ -36,14 +36,14 @@ let Item (items: IItemService) =
 
 let Submission (submissions: ISubmissionService) =
     endpoints [
-        endpoint "All" __ [
+        endpoint "AllSubmissions" __ [
             description "List all submissions in the system"
 
             authorize Employee
             resolve.endpoint (fun _ -> task { return! submissions.All () })
         ]
 
-        endpoint "Get" __ [
+        endpoint "Submission" __ [
             description "A single submission identified by its GUID"
             argumentDocumentation [
                 "Id" => "The GUID of the submission"
@@ -58,14 +58,14 @@ let Submission (submissions: ISubmissionService) =
             resolve.endpoint (fun args -> task { return! submissions.Get args.Id })
         ]
 
-        endpoint "AllMine" __ [
+        endpoint "MySubmissions" __ [
             description "List of all submissions by the current user"
 
             authorize Visitor
             resolve.endpoint (fun _ -> task { return! submissions.All () })
         ]
 
-        endpoint "GetMine" __ [
+        endpoint "MySubmission" __ [
             description "A single submission by the current user identified by its GUID"
             argumentDocumentation [
                 "Id" => "The GUID of the submission"
@@ -83,7 +83,7 @@ let Submission (submissions: ISubmissionService) =
 
 let User (users: IUserService) =
     endpoints [
-        endpoint "Me" __ [
+        endpoint "MyUser" __ [
             description "The current user"
 
             authorize LoggedIn
