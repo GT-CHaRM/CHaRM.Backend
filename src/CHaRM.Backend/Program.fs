@@ -3,13 +3,11 @@
 open System
 open System.IdentityModel.Tokens.Jwt
 open System.Text
-open System.Threading.Tasks
 open FSharp.Utils
-open FSharp.Utils.Tasks
 open GraphQL.FSharp.Server
-open GraphQL.Types
 open GraphQL.Server
 open GraphQL.Server.Ui.Playground
+open GraphQL.Types
 open Microsoft.AspNetCore.Authentication.JwtBearer
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Hosting
@@ -21,12 +19,10 @@ open Microsoft.Extensions.Configuration
 open Microsoft.EntityFrameworkCore
 open Microsoft.IdentityModel.Tokens
 
+open CHaRM.Backend.Database
 open CHaRM.Backend.Model
 open CHaRM.Backend.Schema
 open CHaRM.Backend.Services
-
-type ApplicationDbContext (context: DbContextOptions<ApplicationDbContext>) =
-    inherit IdentityDbContext<User> (context)
 
 let ensureDbCreated (config: IConfigurationRoot) =
     let dbConfig =
@@ -43,7 +39,10 @@ let getConfig () =
         .Build()
 
 let configure (app: IApplicationBuilder) =
-    app.UseAuthentication()
+    app.UseWebSockets ()
+    |> ignore
+
+    app.UseAuthentication ()
     |> ignore
 
     app.UseCors(
@@ -56,7 +55,6 @@ let configure (app: IApplicationBuilder) =
     )
     |> ignore
 
-    app.UseWebSockets() |> ignore
     app.UseGraphQL<Schema> "/graphql" |> ignore
     app.UseGraphQLWebSockets<Schema> "/graphql" |> ignore
     app.UseGraphQLPlayground (GraphQLPlaygroundOptions ()) |> ignore
@@ -117,6 +115,9 @@ let configureServices (services: IServiceCollection) =
     )
     |> ignore
 
+    services.AddHttpContextAccessor ()
+    |> ignore
+
     services.AddTransient<IItemService, ItemService> ()
     |> ignore
 
@@ -135,7 +136,6 @@ let configureServices (services: IServiceCollection) =
             options.ExposeExceptions <- true
             options.EnableMetrics <- true
         )
-        .AddWebSockets()
         .AddDefaultFieldNameConverter()
         .AddAuthorization<Policy> id
     |> ignore

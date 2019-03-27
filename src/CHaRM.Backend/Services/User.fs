@@ -10,6 +10,7 @@ open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Identity
 open Microsoft.Extensions.Configuration
 
+open CHaRM.Backend.Error
 open CHaRM.Backend.Model
 open CHaRM.Backend.Jwt
 open CHaRM.Backend.Util
@@ -19,34 +20,36 @@ let internal (|Guid|_|) (id: string) =
     | true, id -> Some id
     | _ -> None
 
-let internal getMyId (contextAccessor: IHttpContextAccessor) =
-    contextAccessor.HttpContext.User
+let internal getMyId (http: HttpContext) =
+    http.User.FindFirst ClaimTypes.NameIdentifier
     |> Option.ofObj
-    |> Option.bind (fun user -> Option.ofObj (user.FindFirst ClaimTypes.NameIdentifier))
-    |> Option.map (fun claim -> claim.Value)
+    |> Option.bind (fun claim -> Option.ofObj claim.Value)
     |> Option.bind (|Guid|_|)
 
 let all
     (users: UserManager<User>) =
     users.Users
     |> Seq.toArray
+    |> Ok
     |> Task.FromResult
 
 let get
     (users: UserManager<User>)
     (id: Guid) =
     task {
-        let! user = users.FindByIdAsync (id.ToString())
-        return Option.ofNullObj user
+        let! user = users.FindByIdAsync (id.ToString ())
+        match Option.ofNullObj user with
+        | Some user -> return Ok user
+        | _ -> return Error [NoUserFound id]
     }
 
 let me
-    (context: IHttpContextAccessor)
+    (contextAccessor: IHttpContextAccessor)
     (users: UserManager<User>) =
     task {
-        match getMyId context with
+        match getMyId contextAccessor.HttpContext with
         | Some id -> return! get users id
-        | _ -> return None
+        | _ -> return Error [NotLoggedIn]
     }
 
 let login
@@ -67,7 +70,7 @@ let login
             let! user = users.FindByNameAsync username
             let! token = generateJwtToken config user
             return Ok token
-        | SignInError error -> return Error error
+        | SignInError error -> return Error [SignInError error]
     }
 
 let register
@@ -90,20 +93,20 @@ let register
         | IdentitySuccess ->
             let! token = generateJwtToken config user
             return Ok token
-        | IdentityError error -> return Error error
+        | IdentityError error -> return Error [IdentityError error]
     }
 
 type IUserService =
-    abstract member All: unit -> User [] Task
-    abstract member Get: id: Guid -> User option Task
-    abstract member Me: unit -> User option Task
-    abstract member Login: username: string -> password: string -> Result<string, string> Task
-    abstract member Register: username: string -> password: string -> email: string -> Result<string, string> Task
+    abstract member All: unit -> Result<User [], ErrorCode list> Task
+    abstract member Get: id: Guid -> Result<User, ErrorCode list> Task
+    abstract member Me: unit -> Result<User, ErrorCode list> Task
+    abstract member Login: username: string -> password: string -> Result<string, ErrorCode list> Task
+    abstract member Register: username: string -> password: string -> email: string -> Result<string, ErrorCode list> Task
 
-type UserService (context, config, users, signIn) =
+type UserService (config, contextAccessor, users, signIn) =
     let all () = all users
     let get id = get users id
-    let me () = me context users
+    let me () = me contextAccessor users
     let login username password = login config signIn users username password
     let register username password email = register config users username password email
 

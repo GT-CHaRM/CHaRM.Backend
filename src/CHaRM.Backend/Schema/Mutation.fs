@@ -2,7 +2,9 @@
 module CHaRM.Backend.Schema.Mutation
 
 open System
+open FSharp.Utils.Tasks
 open GraphQL.FSharp
+open GraphQL.FSharp.Builder
 open GraphQL.FSharp.Server
 open Validation.Builder
 
@@ -11,10 +13,10 @@ open CHaRM.Backend.Services
 
 let Item (items: IItemService) =
     // TODO: Add a way to add item descriptions for tooltips
-    mutation "Item" [
-        endpoint __ "Create" {
+    endpoints [
+        endpoint "Create" __ [
             description "Adds a new item that can be submitted"
-            argumentDescription [
+            argumentDocumentation [
                 "Name" => "The name of the item"
             ]
 
@@ -23,32 +25,37 @@ let Item (items: IItemService) =
                     return args
                 }
             )
-            resolve (fun _ args -> items.Create args.Name)
-        }
+            resolve.endpoint (fun args -> task { return! items.Create args.Name })
+        ]
     ]
 
-let Submission (submissions: ISubmissionService) =
-    mutation "Submission" [
-        endpoint __ "CreateSelf" {
+let Submission (users: IUserService) (submissions: ISubmissionService) =
+    endpoints [
+        endpoint "CreateSelf" __ [
             description "Adds a new submission for the current user"
-            argumentDescription [
+            argumentDocumentation [
                 "Items" => "The list of the GUIDs of the items being submitted"
                 "ZipCode" => "The zip code of the visitor"
             ]
 
-            authorize Visitor
+            // authorize Visitor
             validate (
                 fun (args: {|Items: Guid []; ZipCode: string|}) -> validation {
                     return args
                 }
             )
-            resolve (fun _ args -> submissions.Create args.Items args.ZipCode)
-        }
+            resolve.endpoint (
+                fun args -> task {
+                    let! me = % users.Me ()
+                    return! submissions.Create me args.Items args.ZipCode
+                }
+            )
+        ]
 
-        endpoint __ "Modify" {
+        endpoint "Modify" __ [
             authorize Employee
             description "Modifies the contents of an existing submission"
-            argumentDescription [
+            argumentDocumentation [
                 "Id" => "The Id of the initial submission"
                 "Items" => "The new list of the GUIDs for the submission"
                 "Time" => "The new time of submission"
@@ -61,12 +68,12 @@ let Submission (submissions: ISubmissionService) =
                 }
             )
             // TODO: Fix Time and zipCode
-            resolve (fun _ args -> submissions.Update args.Id args.Items "")
-        }
+            resolve.endpoint (fun args -> task { return! submissions.Update args.Id args.Items "" })
+        ]
 
-        endpoint __ "Remove" {
+        endpoint "Remove" __ [
             description "Removes an existing submission"
-            argumentDescription [
+            argumentDocumentation [
                 "Id" => "The Id of the submission"
             ]
 
@@ -77,15 +84,15 @@ let Submission (submissions: ISubmissionService) =
                 }
             )
             // TODO: Fix Time and zipCode
-            resolve (fun _ args -> submissions.Delete args.Id)
-        }
+            resolve.endpoint (fun args -> task { return! submissions.Delete args.Id })
+        ]
     ]
 
 let User (users: IUserService) =
-    mutation "User" [
-        endpoint __ "Login" {
+    endpoints [
+        endpoint "Login" __ [
             description "Attempts to login with the provided username and password and returns a JSON web token (JWT) on success."
-            argumentDescription [
+            argumentDocumentation [
                 "Username" => "The user's uesrname"
                 "Password" => "The user's password"
             ]
@@ -95,13 +102,13 @@ let User (users: IUserService) =
                     return args
                 }
             )
-            resolve (fun _ args -> users.Login args.Username args.Password)
-        }
+            resolve.endpoint (fun args -> task { return! users.Login args.Username args.Password })
+        ]
 
         // TODO: Fix issue with getting failure after the first mistake
-        endpoint __ "Register" {
+        endpoint "Register" __ [
             description "Attempts to register with the provided information and returns a JSON web token (JWT) on success."
-            argumentDescription [
+            argumentDocumentation [
                 "Username" => "The user's username"
                 "Email" => "The user's email"
                 "Password" => "The user's password"
@@ -112,6 +119,6 @@ let User (users: IUserService) =
                     return args
                 }
             )
-            resolve (fun _ args -> users.Register args.Username args.Password args.Email)
-        }
+            resolve.endpoint (fun args -> task { return! users.Register args.Username args.Password args.Email })
+        ]
     ]

@@ -3,7 +3,10 @@ module CHaRM.Backend.Services.Item
 
 open System
 open System.Threading.Tasks
+open FSharp.Utils.Tasks
+open Microsoft.EntityFrameworkCore
 
+open CHaRM.Backend.Database
 open CHaRM.Backend.Model
 
 type IItemService =
@@ -11,38 +14,16 @@ type IItemService =
     abstract member Create: name: string -> ItemType Task
     abstract member Get: id: Guid -> ItemType Task
 
-
-(* Mock implementations *)
-
-let newItem name =
-    {
-        Id = Guid.NewGuid ()
-        Name = name
-    }
-
-let mutable items = [|
-    yield newItem "Paint"
-    yield newItem "Tires"
-    yield newItem "Hazardous Chemicals"
-    yield newItem "Electronics"
-    yield newItem "Styrofoam"
-    yield newItem "Metal"
-    yield newItem "Mattresses"
-    yield newItem "Textiles"
-    yield newItem "Glass"
-|]
-
-type ItemService () =
+type ItemService (dbContext: ApplicationDbContext) =
     interface IItemService with
-        member __.All () = Task.FromResult items
+        member __.All () = task { return! dbContext.Items.ToArrayAsync () }
         member __.Create name =
-            let item = {
-                Id = Guid.NewGuid ()
-                Name = name
+            task {
+                let item = {
+                    Id = Guid.NewGuid ()
+                    Name = name
+                }
+                let! changeTracking = dbContext.Items.AddAsync item
+                return changeTracking.Entity
             }
-            items <- [|yield item; yield! items|]
-            Task.FromResult item
-        member __.Get id =
-            items
-            |> Array.find (fun item -> item.Id = id)
-            |> Task.FromResult
+        member __.Get id = task { return! dbContext.Items.FindAsync id }

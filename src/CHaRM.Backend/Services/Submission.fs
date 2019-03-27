@@ -2,79 +2,98 @@
 module CHaRM.Backend.Services.Submission
 
 open System
+open System.Collections.Generic
 open System.Threading.Tasks
 open FSharp.Utils
 open FSharp.Utils.Tasks
+open Microsoft.EntityFrameworkCore
 open Validation
 
+open CHaRM.Backend.Database
 open CHaRM.Backend.Error
 open CHaRM.Backend.Model
 
-let mutable submissions = [||]
+exception ItemNotFoundException of Id: Guid
 
 type ISubmissionService =
     abstract member All: unit -> Submission [] Task
-    abstract member Create: items: Guid [] -> zipCode: string -> Result<Submission, ErrorCode list> Task
-    abstract member Delete: id: Guid -> Submission option Task
-    abstract member Get: id: Guid -> Submission option Task
+    abstract member Create: visitor: User -> items: Guid [] -> zipCode: string -> Result<Submission, ErrorCode list> Task
+    abstract member Delete: id: Guid -> Result<Submission, ErrorCode list> Task
+    abstract member Get: id: Guid -> Result<Submission, ErrorCode list> Task
     abstract member Update: id: Guid -> items: Guid [] -> zipCode: string -> Result<Submission, ErrorCode list> Task
 
-let create (itemService: IItemService) (userService: IUserService) (itemId: Guid) items zipCode =
+// TODO: Move to utils
+module Option =
+    let getOrRaiseWith (f: unit -> #exn) option =
+        match option with
+        | Some value -> value
+        | None -> raise (f ())
+
+let makeItemBatch (itemService: IItemService) items =
     task {
-        let! visitor =
-            userService.Me ()
-            |> Task.map (Validation.ofOption [NotLoggedIn])
-            |> AsyncResult
-
         let! allItems = itemService.All ()
+        try
+            return
+                items
+                |> Array.groupBy id
+                |> Array.map (fun (id, group) ->
+                    let count = Array.length group
+                    {
+                        Id = Guid.NewGuid ()
+                        Item =
+                            allItems
+                            |> Array.tryFind (fun item -> item.Id = id)
+                            |> Option.getOrRaiseWith (fun () -> raise (ItemNotFoundException id))
+                        Count = count
+                    })
+                |> Ok
+        with :? ItemNotFoundException as exn -> return Error [ItemNotFound exn.Id]
+    }
 
-        let items =
-            items
-            |> Array.groupBy id
-            |> Array.map (fun (id, ids) ->
-                {
-                    Id = Guid.NewGuid ()
-                    Item = allItems |> Array.find (fun item -> item.Id = id)
-                    Count = Array.length ids
-                })
-        let item = {
+let create (dbContext: ApplicationDbContext) itemService (itemId: Guid) visitor items zipCode =
+    task {
+        let! items = % makeItemBatch itemService items
+        let! result = dbContext.Submissions.AddAsync {
             Id = itemId
             Visitor = visitor
             Submitted = DateTimeOffset.Now
             Items = items
             ZipCode = zipCode
         }
-        submissions <- [|yield item; yield! submissions|]
-        return Ok item
+        return Ok result.Entity
     }
 
-type SubmissionService (itemService, userService) =
-    let create = create itemService userService
+type SubmissionService (dbContext, itemService) =
+    let create = create dbContext itemService
 
     interface ISubmissionService with
-        member __.All () = Task.FromResult submissions
+        member __.All () = task { return! dbContext.Submissions.ToArrayAsync () }
 
-        member __.Create items zipCode = create (Guid.NewGuid ()) items zipCode
+        member __.Create visitor items zipCode = create (Guid.NewGuid ()) visitor items zipCode
 
-        member __.Delete id =
+        member this.Delete id =
             task {
-                return
-                    submissions
-                    |> Array.tryFind (fun submission -> submission.Id = id)
-                    |> Option.map (fun submission -> submissions <- submissions |> Array.filter (fun submission' -> submission.Id = submission'.Id); submission)
+                let! submission = % (this :> ISubmissionService).Get id
+                let result = dbContext.Submissions.Remove submission
+                return Ok result.Entity
             }
 
         member __.Get id =
-            submissions
-            |> Array.tryFind (fun submission -> submission.Id = id)
-            |> Task.FromResult
+            task {
+                let (|DefaultSubmission|_|) submission =
+                    if submission = Unchecked.defaultof<_>
+                    then None
+                    else Some ()
+
+                match! dbContext.FindAsync id with
+                | DefaultSubmission -> return Error [SubmissionDoesNotExist id]
+                | submission -> return Ok submission
+            }
 
         member this.Update id items zipCode =
             task {
-                match! (this :> ISubmissionService).Get id with
-                | Some item ->
-                    let! _ = (this :> ISubmissionService).Delete item.Id
-                    ()
-                | _ -> ()
-                return! create id items zipCode
+                let! submission = % (this :> ISubmissionService).Get id
+                let! items = % makeItemBatch itemService items
+                let result = dbContext.Submissions.Update {submission with Items = items; ZipCode = zipCode}
+                return Ok result.Entity
             }

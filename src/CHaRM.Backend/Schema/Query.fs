@@ -2,7 +2,9 @@
 module CHaRM.Backend.Schema.Query
 
 open System
+open FSharp.Utils.Tasks
 open GraphQL.FSharp
+open GraphQL.FSharp.Builder
 open GraphQL.FSharp.Server
 open Validation.Builder
 
@@ -10,16 +12,16 @@ open CHaRM.Backend.Schema.Utils
 open CHaRM.Backend.Services
 
 let Item (items: IItemService) =
-    query "Item" [
-        endpoint __ "All" {
+    endpoints [
+        endpoint "All" __ [
             description "List of items available to submit"
 
-            resolve (fun _ _ -> items.All ())
-        }
+            resolve.endpoint (fun _ -> task { return! items.All () })
+        ]
 
-        endpoint __ "Single" {
+        endpoint "Single" __ [
             description "A single item identified by its GUID"
-            argumentDescription [
+            argumentDocumentation [
                 "Id" => "The GUID of the item"
             ]
 
@@ -28,22 +30,22 @@ let Item (items: IItemService) =
                     return args
                 }
             )
-            resolve (fun _ args -> items.Get args.Id)
-        }
+            resolve.endpoint (fun args -> task { return! items.Get args.Id })
+        ]
     ]
 
 let Submission (submissions: ISubmissionService) =
-    query "Submission" [
-        endpoint __ "All" {
+    endpoints [
+        endpoint "All" __ [
             description "List all submissions in the system"
 
             authorize Employee
-            resolve (fun _ _ -> submissions.All ())
-        }
+            resolve.endpoint (fun _ -> task { return! submissions.All () })
+        ]
 
-        endpoint __ "Get" {
+        endpoint "Get" __ [
             description "A single submission identified by its GUID"
-            argumentDescription [
+            argumentDocumentation [
                 "Id" => "The GUID of the submission"
             ]
 
@@ -53,19 +55,19 @@ let Submission (submissions: ISubmissionService) =
                     return args
                 }
             )
-            resolve (fun _ args -> submissions.Get args.Id)
-        }
+            resolve.endpoint (fun args -> task { return! submissions.Get args.Id })
+        ]
 
-        endpoint __ "AllMine" {
+        endpoint "AllMine" __ [
             description "List of all submissions by the current user"
 
             authorize Visitor
-            resolve (fun _ _ -> submissions.All ())
-        }
+            resolve.endpoint (fun _ -> task { return! submissions.All () })
+        ]
 
-        endpoint __ "GetMine" {
+        endpoint "GetMine" __ [
             description "A single submission by the current user identified by its GUID"
-            argumentDescription [
+            argumentDocumentation [
                 "Id" => "The GUID of the submission"
             ]
 
@@ -75,16 +77,16 @@ let Submission (submissions: ISubmissionService) =
                     return args
                 }
             )
-            resolve (fun _ args -> submissions.Get args.Id)
-        }
+            resolve.endpoint (fun args -> task { return! submissions.Get args.Id })
+        ]
     ]
 
 let User (users: IUserService) =
-    query "User" [
-        endpoint __ "Me" {
+    endpoints [
+        endpoint "Me" __ [
             description "The current user"
 
             authorize LoggedIn
-            resolve (fun _ _ -> users.Me ())
-        }
+            resolve.endpoint (fun _ -> task { return! users.Me () })
+        ]
     ]
