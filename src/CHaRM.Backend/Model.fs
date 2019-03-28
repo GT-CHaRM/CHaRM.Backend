@@ -3,8 +3,7 @@ module rec CHaRM.Backend.Model
 (* This module contains the classes that define the model of our app. *)
 
 open System
-open System.ComponentModel.DataAnnotations
-open System.ComponentModel.DataAnnotations.Schema
+open System.Collections.Generic
 open Microsoft.AspNetCore.Identity
 
 [<CLIMutable>]
@@ -17,8 +16,6 @@ type ItemType = {
 [<CLIMutable>]
 type ItemSubmissionBatch = {
     Id: Guid
-    ItemId: Guid
-    [<ForeignKey "ItemId">]
     Item: ItemType
     SubmissionId: Guid
     Count: int
@@ -27,12 +24,9 @@ type ItemSubmissionBatch = {
 [<CLIMutable>]
 type Submission = {
     Id: Guid
-    VisitorId: Guid
-    [<ForeignKey "VisitorId">]
     Visitor: User
     Submitted: DateTimeOffset
-    [<ForeignKey "SubmissionId">]
-    mutable Items: ItemSubmissionBatch ResizeArray
+    mutable Items: ItemSubmissionBatch HashSet
     mutable ZipCode: string
 }
 
@@ -46,5 +40,4 @@ type User () =
 
     member val Type: UserType = UserType.Visitor with get, set
     member val ZipCode: string = null with get, set
-    [<ForeignKey "VisitorId">]
-    member val Submissions: Submission ResizeArray = ResizeArray [] with get, set
+    member val Submissions: Submission HashSet = Unchecked.defaultof<_> with get, set

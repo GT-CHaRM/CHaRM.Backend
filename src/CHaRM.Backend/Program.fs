@@ -24,6 +24,7 @@ open CHaRM.Backend.Model
 open CHaRM.Backend.Schema
 open CHaRM.Backend.Services
 
+
 let ensureDbCreated (app: IApplicationBuilder) =
     use serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope()
     let context = serviceScope.ServiceProvider.GetRequiredService<ApplicationDbContext> ()

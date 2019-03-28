@@ -40,7 +40,7 @@ let UserGraph =
 
             field __ [
                 description "The user's zip code"
-                resolve.property (fun this -> task { return (Option.ofObj this.ZipCode) })
+                resolve.property (fun this -> task { return this.ZipCode })
             ]
         ]
     ]

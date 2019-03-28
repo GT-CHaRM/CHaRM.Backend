@@ -2,6 +2,7 @@
 module CHaRM.Backend.Services.Submission
 
 open System
+open System.Collections.Generic
 open System.Threading.Tasks
 open FSharp.Utils
 open FSharp.Utils.Tasks
@@ -11,6 +12,8 @@ open CHaRM.Backend.Database
 open CHaRM.Backend.Error
 open CHaRM.Backend.Model
 open CHaRM.Backend.Util
+
+// TODO: Add proper pagination
 
 exception ItemNotFoundException of Id: Guid
 
@@ -42,36 +45,51 @@ let makeItemBatch (itemService: IItemService) items submissionId =
                             allItems
                             |> Array.tryFind (fun item -> item.Id = id)
                             |> Option.getOrRaiseWith (fun () -> raise (ItemNotFoundException id))
-                        ItemId = id
                         Count = Array.length group
                         SubmissionId = submissionId
                     }
                 )
-                |> ResizeArray
+                |> HashSet
                 |> Ok
         with :? ItemNotFoundException as exn -> return Error [ItemNotFound exn.Id]
     }
 
-let all (db: ApplicationDbContext) = task { return! db.Submissions.ToArrayAsync () }
+let all (db: ApplicationDbContext) =
+    task {
+        let! submissions =
+            db.Submissions
+                .Include(fun submission -> submission.Items :> _ seq) // we have to upcast beacuse F# doesn't auto upcast
+                .ThenInclude(fun item -> item.Item)
+                .ToArrayAsync()
+        return
+            submissions
+            |> Array.sortByDescending (fun submission -> submission.Submitted)
+    }
 
 let create (db: ApplicationDbContext) itemService visitor items zipCode =
     task {
         let id = Guid.NewGuid ()
         let! items = % makeItemBatch itemService items id
-        let! result = db.Submissions.AddAsync {
-            Id = id
-            Visitor = visitor
-            VisitorId = visitor.Id
-            Submitted = DateTimeOffset.Now
-            Items = items
-            ZipCode = zipCode
-        }
+        let! result =
+            db.Submissions.AddAsync {
+                Id = id
+                Visitor = visitor
+                Submitted = DateTimeOffset.Now
+                Items = items
+                ZipCode = zipCode
+            }
         return Ok result.Entity
     }
 
 let get (db: ApplicationDbContext) (id: Guid) =
     task {
-        match! db.FindAsync id with
+        let! submission =
+            db
+                .Submissions
+                .Include(fun submission -> submission.Items :> _ seq) // we have to upcast beacuse F# doesn't auto upcast
+                .ThenInclude(fun item -> item.Item)
+                .SingleOrDefaultAsync(fun submission -> submission.Id = id)
+        match submission with
         | Default -> return Error [SubmissionDoesNotExist id]
         | submission -> return Ok submission
     }

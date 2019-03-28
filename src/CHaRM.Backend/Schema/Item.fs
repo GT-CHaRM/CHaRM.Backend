@@ -22,6 +22,11 @@ let ItemTypeGraph =
                 description "The item's name"
                 resolve.property (fun this -> task { return this.Name })
             ]
+
+            field __ [
+                description "The item's description"
+                resolve.property (fun this -> task { return this.Description })
+            ]
         ]
     ]
 
