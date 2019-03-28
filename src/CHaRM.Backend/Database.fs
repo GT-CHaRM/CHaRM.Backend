@@ -25,6 +25,11 @@ type ContinuationTaskBuilder (cont: unit -> Task) =
 type ApplicationDbContext (context: DbContextOptions<ApplicationDbContext>) =
     inherit IdentityDbContext<User, IdentityRole<Guid>, Guid> (context)
 
+    override __.OnConfiguring builder =
+        builder.EnableSensitiveDataLogging ()
+        |> ignore
+        base.OnConfiguring builder
+
     [<DefaultValue>]
     val mutable items: DbSet<ItemType>
 
@@ -39,11 +44,4 @@ type ApplicationDbContext (context: DbContextOptions<ApplicationDbContext>) =
         with get () = this.submissions
         and set value = this.submissions <- value
 
-    member this.changes =
-        ContinuationTaskBuilder (
-            fun () ->
-                unitTask {
-                    let! _ = this.SaveChangesAsync Unchecked.defaultof<_>
-                    ()
-                }
-        )
+    member this.changes = ContinuationTaskBuilder (fun () -> unitTask { do! this.SaveChangesAsync Unchecked.defaultof<_> :> Task })

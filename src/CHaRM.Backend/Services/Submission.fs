@@ -2,16 +2,15 @@
 module CHaRM.Backend.Services.Submission
 
 open System
-open System.Collections.Generic
 open System.Threading.Tasks
 open FSharp.Utils
 open FSharp.Utils.Tasks
 open Microsoft.EntityFrameworkCore
-open Validation
 
 open CHaRM.Backend.Database
 open CHaRM.Backend.Error
 open CHaRM.Backend.Model
+open CHaRM.Backend.Util
 
 exception ItemNotFoundException of Id: Guid
 
@@ -29,36 +28,40 @@ module Option =
         | Some value -> value
         | None -> raise (f ())
 
-let makeItemBatch (itemService: IItemService) items =
+let makeItemBatch (itemService: IItemService) items submissionId =
     task {
         let! allItems = itemService.All ()
         try
             return
                 items
                 |> Array.groupBy id
-                |> Array.map (fun (id, group) ->
-                    let item =
-                        allItems
-                        |> Array.tryFind (fun item -> item.Id = id)
-                        |> Option.getOrRaiseWith (fun () -> raise (ItemNotFoundException id))
-                    let count = Array.length group
-                    {
+                |> Array.map (
+                    fun (id, group) -> {
                         Id = Guid.NewGuid ()
-                        Item = item
-                        ItemKey = item.Id
-                        Count = count
-                    })
+                        Item =
+                            allItems
+                            |> Array.tryFind (fun item -> item.Id = id)
+                            |> Option.getOrRaiseWith (fun () -> raise (ItemNotFoundException id))
+                        ItemId = id
+                        Count = Array.length group
+                        SubmissionId = submissionId
+                    }
+                )
+                |> ResizeArray
                 |> Ok
         with :? ItemNotFoundException as exn -> return Error [ItemNotFound exn.Id]
     }
 
-let create (db: ApplicationDbContext) itemService (itemId: Guid) visitor items zipCode =
+let all (db: ApplicationDbContext) = task { return! db.Submissions.ToArrayAsync () }
+
+let create (db: ApplicationDbContext) itemService visitor items zipCode =
     task {
-        let! items = % makeItemBatch itemService items
+        let id = Guid.NewGuid ()
+        let! items = % makeItemBatch itemService items id
         let! result = db.Submissions.AddAsync {
-            Id = itemId
+            Id = id
             Visitor = visitor
-            VisitorKey = visitor.Id
+            VisitorId = visitor.Id
             Submitted = DateTimeOffset.Now
             Items = items
             ZipCode = zipCode
@@ -66,40 +69,41 @@ let create (db: ApplicationDbContext) itemService (itemId: Guid) visitor items z
         return Ok result.Entity
     }
 
+let get (db: ApplicationDbContext) (id: Guid) =
+    task {
+        match! db.FindAsync id with
+        | Default -> return Error [SubmissionDoesNotExist id]
+        | submission -> return Ok submission
+    }
+
+let delete (db: ApplicationDbContext) id =
+    task {
+        let! submission = % get db id
+        let result = db.Submissions.Remove submission
+        return Ok result.Entity
+    }
+
+let update (db: ApplicationDbContext) itemService id items zipCode =
+    task {
+        let! submission = % get db id
+        let! items = % makeItemBatch itemService items id
+        submission.Items <- items
+        submission.ZipCode <- zipCode
+        let result = db.Submissions.Update submission
+        // let result = db.Submissions.Update {submission with Items = items; ZipCode = zipCode}
+        return Ok result.Entity
+    }
+
 type SubmissionService (db, itemService) =
-    let create = create db itemService
+    let all () = all db
+    let create visitor items zipCode = create db itemService visitor items zipCode
+    let get id = get db id
+    let delete id = delete db id
+    let update id items zipCode = update db itemService id items zipCode
 
     interface ISubmissionService with
-        member __.All () = task { return! db.Submissions.ToArrayAsync () }
-
-        member __.Create visitor items zipCode =
-            db.changes {
-                return! create (Guid.NewGuid ()) visitor items zipCode
-            }
-
-        member this.Delete id =
-            db.changes {
-                let! submission = % (this :> ISubmissionService).Get id
-                let result = db.Submissions.Remove submission
-                return Ok result.Entity
-            }
-
-        member __.Get id =
-            task {
-                let (|DefaultSubmission|_|) submission =
-                    if submission = Unchecked.defaultof<_>
-                    then None
-                    else Some ()
-
-                match! db.FindAsync id with
-                | DefaultSubmission -> return Error [SubmissionDoesNotExist id]
-                | submission -> return Ok submission
-            }
-
-        member this.Update id items zipCode =
-            db.changes {
-                let! submission = % (this :> ISubmissionService).Get id
-                let! items = % makeItemBatch itemService items
-                let result = db.Submissions.Update {submission with Items = items; ZipCode = zipCode}
-                return Ok result.Entity
-            }
+        member __.All () = task { return! all () }
+        member __.Create visitor items zipCode = db.changes { return! create visitor items zipCode }
+        member __.Delete id = db.changes { return! delete id }
+        member __.Get id = get id
+        member __.Update id items zipCode = db.changes { return! update id items zipCode }

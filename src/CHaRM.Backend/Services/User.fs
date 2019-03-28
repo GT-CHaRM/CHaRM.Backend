@@ -96,12 +96,31 @@ let register
         | IdentityError error -> return Error [IdentityError error]
     }
 
+let changePassword (users: UserManager<User>) id old ``new`` =
+    task {
+        let! user = % get users id
+        match! users.ChangePasswordAsync (user, old, ``new``) with
+        | IdentitySuccess -> return Ok user
+        | IdentityError error -> return Error [IdentityError error]
+    }
+
+let changeZipCode (users: UserManager<User>) id zip =
+    task {
+        let! user = % get users id
+        user.ZipCode <- zip
+        match! users.UpdateAsync user with
+        | IdentitySuccess -> return Ok user
+        | IdentityError error -> return Error [IdentityError error]
+    }
+
 type IUserService =
     abstract member All: unit -> Result<User [], ErrorCode list> Task
     abstract member Get: id: Guid -> Result<User, ErrorCode list> Task
     abstract member Me: unit -> Result<User, ErrorCode list> Task
     abstract member Login: username: string -> password: string -> Result<string, ErrorCode list> Task
     abstract member Register: username: string -> password: string -> email: string -> Result<string, ErrorCode list> Task
+    abstract member ChangePassword: id: Guid -> old: string -> ``new``: string -> Result<User, ErrorCode list> Task
+    abstract member ChangeZipCode: id: Guid -> zip: string -> Result<User, ErrorCode list> Task
 
 type UserService (config, contextAccessor, users, signIn) =
     let all () = all users
@@ -109,6 +128,8 @@ type UserService (config, contextAccessor, users, signIn) =
     let me () = me contextAccessor users
     let login username password = login config signIn users username password
     let register username password email = register config users username password email
+    let changePassword id old ``new`` = changePassword users id old ``new``
+    let changeZipCode id zip = changeZipCode users id zip
 
     interface IUserService with
         member __.All () = all ()
@@ -116,3 +137,5 @@ type UserService (config, contextAccessor, users, signIn) =
         member __.Me () = me ()
         member __.Login username password = login username password
         member __.Register username password email = register username password email
+        member __.ChangePassword id old ``new`` = changePassword id old ``new``
+        member __.ChangeZipCode id zip = changeZipCode id zip

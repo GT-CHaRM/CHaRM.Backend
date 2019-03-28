@@ -10,28 +10,30 @@ open Microsoft.AspNetCore.Identity
 [<CLIMutable>]
 type ItemType = {
     Id: Guid
-    Name: string
+    mutable Description: string
+    mutable Name: string
 }
 
 [<CLIMutable>]
 type ItemSubmissionBatch = {
     Id: Guid
-    ItemKey: Guid
-    [<ForeignKey "ItemKey">]
+    ItemId: Guid
+    [<ForeignKey "ItemId">]
     Item: ItemType
+    SubmissionId: Guid
     Count: int
 }
 
 [<CLIMutable>]
 type Submission = {
     Id: Guid
-    VisitorKey: Guid
-    [<ForeignKey "VisitorKey">]
+    VisitorId: Guid
+    [<ForeignKey "VisitorId">]
     Visitor: User
     Submitted: DateTimeOffset
-    [<ForeignKey "ItemKey">]
-    Items: ItemSubmissionBatch []
-    ZipCode: string
+    [<ForeignKey "SubmissionId">]
+    mutable Items: ItemSubmissionBatch ResizeArray
+    mutable ZipCode: string
 }
 
 type UserType =
@@ -44,4 +46,5 @@ type User () =
 
     member val Type: UserType = UserType.Visitor with get, set
     member val ZipCode: string = null with get, set
-    member val Submissions: Submission [] = [||] with get, set
+    [<ForeignKey "VisitorId">]
+    member val Submissions: Submission ResizeArray = ResizeArray [] with get, set

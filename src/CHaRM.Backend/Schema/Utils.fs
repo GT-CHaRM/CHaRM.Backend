@@ -2,7 +2,6 @@
 module CHaRM.Backend.Schema.Utils
 
 open System.Security.Claims
-open GraphQL.FSharp
 open GraphQL.FSharp.Server
 open Microsoft.AspNetCore.Authentication.JwtBearer
 open Microsoft.AspNetCore.Authorization

@@ -4,6 +4,11 @@ open Microsoft.AspNetCore.Authentication.JwtBearer
 open Microsoft.AspNetCore.Authorization
 open Microsoft.AspNetCore.Identity
 
+let (|Default|_|) obj =
+    if obj = Unchecked.defaultof<_>
+    then Some ()
+    else None
+
 let (|SignInSuccess|SignInError|) (result: SignInResult) =
     if result.Succeeded then SignInSuccess
     elif result.IsLockedOut then SignInError "Locked out!"

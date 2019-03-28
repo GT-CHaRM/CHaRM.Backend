@@ -5,16 +5,16 @@ open GraphQL.FSharp.Builder
 
 let Query items submissions users =
     query [
-        yield! Query.Item items
-        yield! Query.Submission submissions
-        yield! Query.User users
+        yield! Item.Query items
+        yield! Submission.Query submissions
+        yield! User.Query users
     ]
 
 let Mutation items submissions users =
     mutation [
-        yield! Mutation.Item items
-        yield! Mutation.Submission users submissions
-        yield! Mutation.User users
+        yield! Item.Mutation items
+        yield! Submission.Mutation users submissions
+        yield! User.Mutation users
     ]
 
 let Schema (items, submissions, users) =
@@ -23,9 +23,8 @@ let Schema (items, submissions, users) =
         Mutation items submissions users
 
         types [
-            ItemTypeGraph
-            ItemSubmissionBatchGraph
-            SubmissionGraph
-            UserGraph
+            yield! Item.Types
+            yield! Submission.Types
+            yield! User.Types
         ]
     ]

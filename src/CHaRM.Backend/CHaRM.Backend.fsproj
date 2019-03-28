@@ -19,9 +19,9 @@
     <Compile Include="Services/Item.fs" />
     <Compile Include="Services/Submission.fs" />
     <Compile Include="Schema/Utils.fs" />
-    <Compile Include="Schema/Model.fs" />
-    <Compile Include="Schema/Query.fs" />
-    <Compile Include="Schema/Mutation.fs" />
+    <Compile Include="Schema/Item.fs" />
+    <Compile Include="Schema/Submission.fs" />
+    <Compile Include="Schema/User.fs" />
     <Compile Include="Schema/Schema.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
