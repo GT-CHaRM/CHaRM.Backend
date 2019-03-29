@@ -76,12 +76,14 @@ let login
 let register
     (config: IConfigurationRoot)
     (users: UserManager<User>)
-    username password email =
+    type' username password email zip =
     task {
         let user =
             User (
+                Type = type',
                 UserName = username,
                 Email = email,
+                ZipCode = zip,
                 SecurityStamp = Guid.NewGuid().ToString()
             )
         let! result =
@@ -96,10 +98,12 @@ let register
         | IdentityError error -> return Error [IdentityError error]
     }
 
-let changePassword (users: UserManager<User>) id old ``new`` =
+// TODO: Add old password support in the future
+let changePassword (users: UserManager<User>) id ``new`` =
     task {
         let! user = % get users id
-        match! users.ChangePasswordAsync (user, old, ``new``) with
+        let! token = users.GeneratePasswordResetTokenAsync user
+        match! users.ResetPasswordAsync (user, token, ``new``) with
         | IdentitySuccess -> return Ok user
         | IdentityError error -> return Error [IdentityError error]
     }
@@ -118,8 +122,9 @@ type IUserService =
     abstract member Get: id: Guid -> Result<User, ErrorCode list> Task
     abstract member Me: unit -> Result<User, ErrorCode list> Task
     abstract member Login: username: string -> password: string -> Result<string, ErrorCode list> Task
-    abstract member Register: username: string -> password: string -> email: string -> Result<string, ErrorCode list> Task
-    abstract member ChangePassword: id: Guid -> old: string -> ``new``: string -> Result<User, ErrorCode list> Task
+    abstract member Register: username: string -> password: string -> email: string -> zip: string -> Result<string, ErrorCode list> Task
+    abstract member RegisterEmployee: username: string -> password: string -> email: string -> Result<string, ErrorCode list> Task
+    abstract member ChangePassword: id: Guid -> ``new``: string -> Result<User, ErrorCode list> Task
     abstract member ChangeZipCode: id: Guid -> zip: string -> Result<User, ErrorCode list> Task
 
 type UserService (config, contextAccessor, users, signIn) =
@@ -127,8 +132,8 @@ type UserService (config, contextAccessor, users, signIn) =
     let get id = get users id
     let me () = me contextAccessor users
     let login username password = login config signIn users username password
-    let register username password email = register config users username password email
-    let changePassword id old ``new`` = changePassword users id old ``new``
+    let register type' username password email zip = register config users type' username password email zip
+    let changePassword id ``new`` = changePassword users id ``new``
     let changeZipCode id zip = changeZipCode users id zip
 
     interface IUserService with
@@ -136,6 +141,7 @@ type UserService (config, contextAccessor, users, signIn) =
         member __.Get id = get id
         member __.Me () = me ()
         member __.Login username password = login username password
-        member __.Register username password email = register username password email
-        member __.ChangePassword id old ``new`` = changePassword id old ``new``
+        member __.Register username password email zip = register UserType.Visitor username password email zip
+        member __.RegisterEmployee username password email = register UserType.Employee username password email ""
+        member __.ChangePassword id ``new`` = changePassword id ``new``
         member __.ChangeZipCode id zip = changeZipCode id zip

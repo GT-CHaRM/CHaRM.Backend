@@ -23,7 +23,12 @@ let UserGraph =
     object<User> [
         description "A user registered with CHaRM"
         fields [
-            field UserTypeGraph [
+            field __ [
+                description "The ID of the user"
+                resolve.property (fun this -> task { return this.Id })
+            ]
+
+            field __ [
                 description "The type of the user"
                 resolve.property (fun this -> task { return this.Type })
             ]
@@ -79,6 +84,64 @@ let Mutation (users: IUserService) =
                 "Username" => "The user's username"
                 "Email" => "The user's email"
                 "Password" => "The user's password"
+                "ZipCode" => "The user's zip code"
+            ]
+
+            validate (
+                fun (args: {|Username: string; Email: string; Password: string; ZipCode: string|}) -> validation {
+                    return args
+                }
+            )
+            resolve.endpoint (fun args -> task { return! users.Register args.Username args.Password args.Email args.ZipCode })
+        ]
+
+        endpoint "ChangeMyPassword" __ [
+            description "Changes the zip code of the current user"
+            argumentDocumentation [
+                "NewPassword" => "The new password"
+            ]
+
+            validate (
+                fun (args: {|NewPassword: string|}) -> validation {
+                    return args
+                }
+            )
+            resolve.endpoint (
+                fun args ->
+                    task {
+                        let! me = % users.Me ()
+                        return! users.ChangePassword me.Id args.NewPassword
+                    }
+                )
+        ]
+
+        endpoint "ChangeMyZipCode" __ [
+            description "Changes the zip code of the current user"
+            argumentDocumentation [
+                "ZipCode" => "The new zip code"
+            ]
+
+            validate (
+                fun (args: {|ZipCode: string|}) -> validation {
+                    return args
+                }
+            )
+            resolve.endpoint (
+                fun args ->
+                    task {
+                        let! me = % users.Me ()
+                        return! users.ChangeZipCode me.Id args.ZipCode
+                    }
+                )
+        ]
+
+        endpoint "CreateEmployeeAccount" __ [
+            // authorize Administrator
+            description "Creates an employee account"
+            argumentDocumentation [
+                "Username" => "The employee's username"
+                "Email" => "The employee's email"
+                "Password" => "The employee's password"
             ]
 
             validate (
@@ -86,7 +149,7 @@ let Mutation (users: IUserService) =
                     return args
                 }
             )
-            resolve.endpoint (fun args -> task { return! users.Register args.Username args.Password args.Email })
+            resolve.endpoint (fun args -> task { return! users.RegisterEmployee args.Username args.Password args.Email })
         ]
     ]
 
