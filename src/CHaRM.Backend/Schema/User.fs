@@ -1,5 +1,6 @@
 module CHaRM.Backend.Schema.User
 
+open System
 open FSharp.Utils.Tasks
 open GraphQL.FSharp
 open GraphQL.FSharp.Builder
@@ -113,6 +114,35 @@ let Mutation (users: IUserService) =
                         return! users.ChangePassword me.Id args.NewPassword
                     }
                 )
+        ]
+
+        endpoint "DeleteMyAccount" __ [
+            description "Deletes the current account"
+            argumentDocumentation [
+                "Password" => "The current password of the user"
+            ]
+
+            validate (
+                fun (args: {|Password: string|}) -> validation {
+                    return args
+                }
+            )
+            resolve.endpoint (fun args -> task { return! users.DeleteMyAccount args.Password })
+        ]
+
+        endpoint "DeleteAccount" __ [
+            // authorize Employee
+            description "Deletes the current account"
+            argumentDocumentation [
+                "Id" => "The id of the user to remove"
+            ]
+
+            validate (
+                fun (args: {|Id: Guid|}) -> validation {
+                    return args
+                }
+            )
+            resolve.endpoint (fun args -> task { return! users.DeleteAccount args.Id })
         ]
 
         endpoint "ChangeMyZipCode" __ [

@@ -9,3 +9,4 @@ type ErrorCode =
 | SignInError of Error: string
 | IdentityError of Error: string
 | ItemNotFound of Id: Guid
+| InvalidPassword

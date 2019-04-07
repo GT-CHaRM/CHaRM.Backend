@@ -8,12 +8,24 @@ open FSharp.Utils
 open FSharp.Utils.Tasks
 open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.Identity
+open Microsoft.EntityFrameworkCore
 open Microsoft.Extensions.Configuration
 
 open CHaRM.Backend.Error
 open CHaRM.Backend.Model
 open CHaRM.Backend.Jwt
 open CHaRM.Backend.Util
+
+let inline (~%%) (error: IdentityResult Task) =
+    TaskResult <| task {
+        let! error = error
+        if error.Succeeded then return Ok () else
+        return
+            error.Errors
+            |> Seq.toList
+            |> List.map (fun error -> IdentityError error.Description)
+            |> Error
+    }
 
 let internal (|Guid|_|) (id: string) =
     match Guid.TryParse id with
@@ -26,12 +38,11 @@ let internal getMyId (http: HttpContext) =
     |> Option.bind (fun claim -> Option.ofObj claim.Value)
     |> Option.bind (|Guid|_|)
 
-let all
-    (users: UserManager<User>) =
-    users.Users
-    |> Seq.toArray
-    |> Ok
-    |> Task.FromResult
+let all (users: UserManager<User>) =
+    task {
+        let! users = users.Users.ToArrayAsync ()
+        return Ok users
+    }
 
 let get
     (users: UserManager<User>)
@@ -86,16 +97,13 @@ let register
                 ZipCode = zip,
                 SecurityStamp = Guid.NewGuid().ToString()
             )
-        let! result =
-            users.CreateAsync (
+        do!
+            %% users.CreateAsync (
                 user = user,
                 password = password
             )
-        match result with
-        | IdentitySuccess ->
-            let! token = generateJwtToken config user
-            return Ok token
-        | IdentityError error -> return Error [IdentityError error]
+        let! token = generateJwtToken config user
+        return Ok token
     }
 
 // TODO: Add old password support in the future
@@ -117,6 +125,23 @@ let changeZipCode (users: UserManager<User>) id zip =
         | IdentityError error -> return Error [IdentityError error]
     }
 
+let deleteAccount users id =
+    task {
+        let! user = % get users id
+        do! %% users.DeleteAsync user
+        return Ok user
+    }
+
+let deleteMyAccount contextAccessor users password =
+    task {
+        let! user = % me contextAccessor users
+        match! users.CheckPasswordAsync (user, password) with
+        | true ->
+            do! %% users.DeleteAsync user
+            return Ok user
+        | false -> return Error [InvalidPassword]
+    }
+
 type IUserService =
     abstract member All: unit -> Result<User [], ErrorCode list> Task
     abstract member Get: id: Guid -> Result<User, ErrorCode list> Task
@@ -126,6 +151,8 @@ type IUserService =
     abstract member RegisterEmployee: username: string -> password: string -> email: string -> Result<string, ErrorCode list> Task
     abstract member ChangePassword: id: Guid -> ``new``: string -> Result<User, ErrorCode list> Task
     abstract member ChangeZipCode: id: Guid -> zip: string -> Result<User, ErrorCode list> Task
+    abstract member DeleteAccount: id: Guid -> Result<User, ErrorCode list> Task
+    abstract member DeleteMyAccount: password: string -> Result<User, ErrorCode list> Task
 
 type UserService (config, contextAccessor, users, signIn) =
     let all () = all users
@@ -135,6 +162,8 @@ type UserService (config, contextAccessor, users, signIn) =
     let register type' username password email zip = register config users type' username password email zip
     let changePassword id ``new`` = changePassword users id ``new``
     let changeZipCode id zip = changeZipCode users id zip
+    let deleteAccount id = deleteAccount users id
+    let deleteMyAccount password = deleteMyAccount contextAccessor users password
 
     interface IUserService with
         member __.All () = all ()
@@ -145,3 +174,5 @@ type UserService (config, contextAccessor, users, signIn) =
         member __.RegisterEmployee username password email = register UserType.Employee username password email ""
         member __.ChangePassword id ``new`` = changePassword id ``new``
         member __.ChangeZipCode id zip = changeZipCode id zip
+        member __.DeleteMyAccount password = deleteMyAccount password
+        member __.DeleteAccount id = deleteAccount id
