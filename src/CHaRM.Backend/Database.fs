@@ -67,6 +67,18 @@ type ApplicationDbContext (context: DbContextOptions<ApplicationDbContext>) =
                 | _ -> ()
         )
 
+        // builder.Entity<User>().HasData
+        //     [|
+        //         User (
+        //             Type = UserType.Administrator,
+        //             UserName = "admin",
+        //             Email = "admin@charm.com",
+        //             ZipCode = "",
+        //             SecurityStamp = Guid.NewGuid().ToString()
+        //         )
+        //     |]
+        // |> ignore
+
     [<DefaultValue>]
     val mutable items: DbSet<ItemType>
 

@@ -19,6 +19,7 @@ exception ItemNotFoundException of Id: Guid
 
 type ISubmissionService =
     abstract member All: unit -> Submission [] Task
+    abstract member AllOf: userId: Guid -> Submission [] Task
     abstract member Create: visitor: User -> items: Guid [] -> zipCode: string -> Result<Submission, ErrorCode list> Task
     abstract member Delete: id: Guid -> Result<Submission, ErrorCode list> Task
     abstract member Get: id: Guid -> Result<Submission, ErrorCode list> Task
@@ -58,6 +59,22 @@ let all (db: ApplicationDbContext) =
     task {
         let! submissions =
             db.Submissions
+                .Include(fun submission -> submission.Items :> _ seq) // we have to upcast beacuse F# doesn't auto upcast
+                .ThenInclude(fun item -> item.Item)
+                .ToArrayAsync()
+        return
+            submissions
+            |> Array.sortByDescending (fun submission -> submission.Submitted)
+    }
+
+let allOf (db: ApplicationDbContext) id =
+    task {
+        let! submissions =
+            (query {
+                for submission in db.Submissions do
+                    where (submission.Visitor.Id = id)
+                    select submission
+            })
                 .Include(fun submission -> submission.Items :> _ seq) // we have to upcast beacuse F# doesn't auto upcast
                 .ThenInclude(fun item -> item.Item)
                 .ToArrayAsync()
@@ -114,6 +131,7 @@ let update (db: ApplicationDbContext) itemService id items zipCode =
 
 type SubmissionService (db, itemService) =
     let all () = all db
+    let allOf id = allOf db id
     let create visitor items zipCode = create db itemService visitor items zipCode
     let get id = get db id
     let delete id = delete db id
@@ -121,6 +139,7 @@ type SubmissionService (db, itemService) =
 
     interface ISubmissionService with
         member __.All () = task { return! all () }
+        member __.AllOf id = task { return! allOf id }
         member __.Create visitor items zipCode = db.changes { return! create visitor items zipCode }
         member __.Delete id = db.changes { return! delete id }
         member __.Get id = get id

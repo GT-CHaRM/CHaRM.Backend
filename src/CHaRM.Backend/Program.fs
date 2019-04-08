@@ -4,6 +4,7 @@ open System
 open System.IdentityModel.Tokens.Jwt
 open System.Text
 open FSharp.Utils
+open FSharp.Utils.Tasks
 open GraphQL.FSharp.Server
 open GraphQL.Server
 open GraphQL.Server.Ui.Playground
@@ -37,6 +38,44 @@ let getConfig () =
         .AddJsonFile("appsettings.json")
         .Build()
 
+let (|Default|_|) value = if value = Unchecked.defaultof<_> then Some () else None
+
+let addAdminAccount (users: UserManager<User>) =
+    // TODO: Remove hardcoded values
+    unitTask {
+        match! users.FindByNameAsync "admin" with
+        | Default ->
+            let! _ =
+                users.CreateAsync (
+                    user =
+                        User (
+                            Type = UserType.Administrator,
+                            UserName = "admin",
+                            Email = "admin@livethrive.org",
+                            ZipCode = "",
+                            SecurityStamp = Guid.NewGuid().ToString()
+                        ),
+                    password = "MyPass1$"
+                )
+            ()
+        | _ -> ()
+    }
+
+let addDefaultItems (items: IItemService) =
+    unitTask {
+        let! all = items.All ()
+        if not <| Array.isEmpty all then return () else
+        let! _ =
+            items.Create
+                "Paint"
+                "latex and oil base (First fifty pounds are free each additional pound is $.25.)"
+        let! _ =
+            items.Create
+                "Household Chemicals"
+                "pesticides, herbicides, household cleaners, etc. (The first 50 pounds are free each additional pound is $.25)"
+        return ()
+    }
+
 let configure (app: IApplicationBuilder) =
     app.UseWebSockets ()
     |> ignore
@@ -59,6 +98,9 @@ let configure (app: IApplicationBuilder) =
     app.UseGraphQLPlayground (GraphQLPlaygroundOptions ()) |> ignore
 
     ensureDbCreated app
+
+    addAdminAccount(app.ApplicationServices.GetRequiredService<UserManager<User>> ()).Wait()
+    addDefaultItems(app.ApplicationServices.GetRequiredService<IItemService> ()).Wait()
 
     ()
 

@@ -10,6 +10,17 @@ open Validation.Builder
 open CHaRM.Backend.Model
 open CHaRM.Backend.Services
 
+[<AutoOpen>]
+module Arguments =
+    module Query =
+        type Submission = {Id: Guid}
+        type MySubmission = {Id: Guid}
+        type AllSubmissionsOf = {UserId: Guid}
+    module Mutation =
+        type CreateSubmissionSelf = {Items: Guid []; ZipCode: string}
+        type ModifySubmission = {Id: Guid; Time: DateTimeOffset; Items: Guid []; ZipCode: string}
+        type RemoveSubmission = {Id: Guid}
+
 let ItemSubmissionBatchGraph =
     object<ItemSubmissionBatch> [
         description "A type that represents a unique submission for a specific item, including the item id and the count submitted."
@@ -72,6 +83,18 @@ let Query (submissions: ISubmissionService) =
             resolve.endpoint (fun _ -> task { return! submissions.All () })
         ]
 
+        endpoint "GetAllSubmissionsFromUser" __ [
+            description "List all submissions in the system"
+            validate (
+                fun (args: Query.AllSubmissionsOf) -> validation {
+                    return args
+                }
+            )
+
+            // authorize Employee
+            resolve.endpoint (fun args -> task { return! submissions.AllOf args.UserId })
+        ]
+
         endpoint "Submission" __ [
             description "A single submission identified by its GUID"
             argumentDocumentation [
@@ -80,7 +103,7 @@ let Query (submissions: ISubmissionService) =
 
             // authorize Employee
             validate (
-                fun (args: {|Id: Guid|}) -> validation {
+                fun (args: Query.Submission) -> validation {
                     return args
                 }
             )
@@ -102,7 +125,7 @@ let Query (submissions: ISubmissionService) =
 
             authorize Visitor
             validate (
-                fun (args: {|Id: Guid|}) -> validation {
+                fun (args: Query.MySubmission) -> validation {
                     return args
                 }
             )
@@ -121,7 +144,7 @@ let Mutation (users: IUserService) (submissions: ISubmissionService) =
 
             // authorize Visitor
             validate (
-                fun (args: {|Items: Guid []; ZipCode: string|}) -> validation {
+                fun (args: Mutation.CreateSubmissionSelf) -> validation {
                     return args
                 }
             )
@@ -144,7 +167,7 @@ let Mutation (users: IUserService) (submissions: ISubmissionService) =
             ]
 
             validate (
-                fun (args: {|Id: Guid; Time: DateTimeOffset; Items: Guid []; ZipCode: string|}) -> validation {
+                fun (args: Mutation.ModifySubmission) -> validation {
                     return args
                 }
             )
@@ -160,7 +183,7 @@ let Mutation (users: IUserService) (submissions: ISubmissionService) =
 
             //authorize Employee
             validate (
-                fun (args: {|Id: Guid|}) -> validation {
+                fun (args: Mutation.RemoveSubmission) -> validation {
                     return args
                 }
             )

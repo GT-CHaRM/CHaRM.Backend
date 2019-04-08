@@ -9,6 +9,14 @@ open Validation.Builder
 open CHaRM.Backend.Model
 open CHaRM.Backend.Services
 
+[<AutoOpen>]
+module Arguments =
+    module Query =
+        type Item = {Id: Guid}
+    module Mutation =
+        type CreateItem = {Name: string; Description: string}
+        type ModifyItem = {Id: Guid; Name: string option; Description: string option}
+
 let ItemTypeGraph =
     object<ItemType> [
         description "A type that represents a specific acceptable item in our database."
@@ -45,7 +53,7 @@ let Query (items: IItemService) =
             ]
 
             validate (
-                fun (args: {|Id: Guid|}) -> validation {
+                fun (args: Query.Item) -> validation {
                     return args
                 }
             )
@@ -64,7 +72,7 @@ let Mutation (items: IItemService) =
             ]
 
             validate (
-                fun (args: {|Name: string; Description: string|}) -> validation {
+                fun (args: Mutation.CreateItem) -> validation {
                     return args
                 }
             )
@@ -79,7 +87,7 @@ let Mutation (items: IItemService) =
             ]
 
             validate (
-                fun (args: {|Id: Guid; Name: string option; Description: string option|}) -> validation {
+                fun (args: Mutation.ModifyItem) -> validation {
                     return args
                 }
             )
