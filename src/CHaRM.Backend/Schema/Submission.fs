@@ -23,21 +23,21 @@ module Arguments =
 
 let ItemSubmissionBatchGraph =
     object<ItemSubmissionBatch> [
-        description "A type that represents a unique submission for a specific item, including the item id and the count submitted."
+        Documentation.description "A type that represents a unique submission for a specific item, including the item id and the count submitted."
         fields [
             field __ [
-                description "The item batch's unique GUID"
-                resolve.property (fun this -> task { return this.Id })
+                Documentation.description "The item batch's unique GUID"
+                resolve.property (fun this -> vtask { return this.Id })
             ]
 
             field __ [
-                description "The count of the item that was submitted."
-                resolve.property (fun this -> task { return this.Count })
+                Documentation.description "The count of the item that was submitted."
+                resolve.property (fun this -> vtask { return this.Count })
             ]
 
             field __ [
-                description "The item submitted"
-                resolve.property (fun this -> task { return this.Item })
+                Documentation.description "The item submitted"
+                resolve.property (fun this -> vtask { return this.Item })
             ]
         ]
     ]
@@ -45,31 +45,31 @@ let ItemSubmissionBatchGraph =
 
 let SubmissionGraph =
     object<Submission> [
-        description "The list of items submitted in a single visit to CHaRM"
+        Documentation.description "The list of items submitted in a single visit to CHaRM"
         fields [
             field __ [
-                description "The unique id of this submission"
-                resolve.property (fun this -> task { return this.Id })
+                Documentation.description "The unique id of this submission"
+                resolve.property (fun this -> vtask { return this.Id })
             ]
 
             field __ [
-                description "The visitor who performed the submission"
-                resolve.property (fun this -> task { return this.Visitor })
+                Documentation.description "The visitor who performed the submission"
+                resolve.property (fun this -> vtask { return this.Visitor })
             ]
 
             field __ [
-                description "The list of items (+ counts) submitted"
-                resolve.property (fun this -> task { return this.Items })
+                Documentation.description "The list of items (+ counts) submitted"
+                resolve.property (fun this -> vtask { return this.Items })
             ]
 
             field __ [
-                description "The date of submission"
-                resolve.property (fun this -> task { return this.Submitted })
+                Documentation.description "The date of submission"
+                resolve.property (fun this -> vtask { return this.Submitted })
             ]
 
             field __ [
-                description "The zip code of the visitor who performed the submission."
-                resolve.property (fun this -> task { return (Option.ofObj this.ZipCode) })
+                Documentation.description "The zip code of the visitor who performed the submission."
+                resolve.property (fun this -> vtask { return (Option.ofObj this.ZipCode) })
             ]
         ]
     ]
@@ -77,14 +77,14 @@ let SubmissionGraph =
 let Query (submissions: ISubmissionService) =
     endpoints [
         endpoint "AllSubmissions" __ [
-            description "List all submissions in the system"
+            Documentation.description "List all submissions in the system"
 
             // authorize Employee
-            resolve.endpoint (fun _ -> task { return! submissions.All () })
+            resolve.endpoint (fun _ -> vtask { return! submissions.All () })
         ]
 
         endpoint "GetAllSubmissionsFromUser" __ [
-            description "List all submissions in the system"
+            Documentation.description "List all submissions in the system"
             validate (
                 fun (args: Query.AllSubmissionsOf) -> validation {
                     return args
@@ -92,12 +92,12 @@ let Query (submissions: ISubmissionService) =
             )
 
             // authorize Employee
-            resolve.endpoint (fun args -> task { return! submissions.AllOf args.UserId })
+            resolve.endpoint (fun args -> vtask { return! submissions.AllOf args.UserId })
         ]
 
         endpoint "Submission" __ [
-            description "A single submission identified by its GUID"
-            argumentDocumentation [
+            Documentation.description "A single submission identified by its GUID"
+            Documentation.arguments [
                 "Id" => "The GUID of the submission"
             ]
 
@@ -107,19 +107,19 @@ let Query (submissions: ISubmissionService) =
                     return args
                 }
             )
-            resolve.endpoint (fun args -> task { return! submissions.Get args.Id })
+            resolve.endpoint (fun args -> vtask { return! submissions.Get args.Id })
         ]
 
         endpoint "MySubmissions" __ [
-            description "List of all submissions by the current user"
+            Documentation.description "List of all submissions by the current user"
 
             authorize Visitor
-            resolve.endpoint (fun _ -> task { return! submissions.All () })
+            resolve.endpoint (fun _ -> vtask { return! submissions.All () })
         ]
 
         endpoint "MySubmission" __ [
-            description "A single submission by the current user identified by its GUID"
-            argumentDocumentation [
+            Documentation.description "A single submission by the current user identified by its GUID"
+            Documentation.arguments [
                 "Id" => "The GUID of the submission"
             ]
 
@@ -129,15 +129,15 @@ let Query (submissions: ISubmissionService) =
                     return args
                 }
             )
-            resolve.endpoint (fun args -> task { return! submissions.Get args.Id })
+            resolve.endpoint (fun args -> vtask { return! submissions.Get args.Id })
         ]
     ]
 
 let Mutation (users: IUserService) (submissions: ISubmissionService) =
     endpoints [
         endpoint "CreateSubmissionSelf" __ [
-            description "Adds a new submission for the current user"
-            argumentDocumentation [
+            Documentation.description "Adds a new submission for the current user"
+            Documentation.arguments [
                 "Items" => "The list of the GUIDs of the items being submitted"
                 "ZipCode" => "The zip code of the visitor"
             ]
@@ -149,7 +149,7 @@ let Mutation (users: IUserService) (submissions: ISubmissionService) =
                 }
             )
             resolve.endpoint (
-                fun args -> task {
+                fun args -> vtask {
                     let! me = % users.Me ()
                     return! submissions.Create me args.Items args.ZipCode
                 }
@@ -158,8 +158,8 @@ let Mutation (users: IUserService) (submissions: ISubmissionService) =
 
         endpoint "ModifySubmission" __ [
             //authorize Employee
-            description "Modifies the contents of an existing submission"
-            argumentDocumentation [
+            Documentation.description "Modifies the contents of an existing submission"
+            Documentation.arguments [
                 "Id" => "The Id of the initial submission"
                 "Items" => "The new list of the GUIDs for the submission"
                 "Time" => "The new time of submission"
@@ -172,12 +172,12 @@ let Mutation (users: IUserService) (submissions: ISubmissionService) =
                 }
             )
             // TODO: Fix Time and zipCode
-            resolve.endpoint (fun args -> task { return! submissions.Update args.Id args.Items "" })
+            resolve.endpoint (fun args -> vtask { return! submissions.Update args.Id args.Items "" })
         ]
 
         endpoint "RemoveSubmission" __ [
-            description "Removes an existing submission"
-            argumentDocumentation [
+            Documentation.description "Removes an existing submission"
+            Documentation.arguments [
                 "Id" => "The Id of the submission"
             ]
 
@@ -188,7 +188,7 @@ let Mutation (users: IUserService) (submissions: ISubmissionService) =
                 }
             )
             // TODO: Fix Time and zipCode
-            resolve.endpoint (fun args -> task { return! submissions.Delete args.Id })
+            resolve.endpoint (fun args -> vtask { return! submissions.Delete args.Id })
         ]
     ]
 

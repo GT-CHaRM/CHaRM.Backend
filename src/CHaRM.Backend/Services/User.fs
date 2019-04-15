@@ -17,7 +17,7 @@ open CHaRM.Backend.Jwt
 open CHaRM.Backend.Util
 
 let inline (~%%) (error: IdentityResult Task) =
-    TaskResult <| task {
+    ValueTaskResult <| vtask {
         let! error = error
         if error.Succeeded then return Ok () else
         return
@@ -41,7 +41,7 @@ let internal getMyId (http: HttpContext) =
 let get
     (users: UserManager<User>)
     (id: Guid) =
-    task {
+    vtask {
         let! user = users.FindByIdAsync (id.ToString ())
         match Option.ofNullObj user with
         | Some user -> return Ok user
@@ -51,7 +51,7 @@ let get
 let me
     (contextAccessor: IHttpContextAccessor)
     (users: UserManager<User>) =
-    task {
+    vtask {
         match getMyId contextAccessor.HttpContext with
         | Some id -> return! get users id
         | _ -> return Error [NotLoggedIn]
@@ -61,7 +61,7 @@ module Query =
     let toArrayAsync (queriable: _ Linq.IQueryable) = queriable.ToArrayAsync ()
 
 let all contextAcessor (users: UserManager<User>) =
-    task {
+    vtask {
         let! me = % me contextAcessor users
         let! users =
             query {
@@ -78,7 +78,7 @@ let login
     (signIn: SignInManager<User>)
     (users: UserManager<User>)
     username password =
-    task {
+    vtask {
         let! result =
             signIn.PasswordSignInAsync (
                 userName = username,
@@ -98,7 +98,7 @@ let register
     (config: IConfigurationRoot)
     (users: UserManager<User>)
     type' username password email zip =
-    task {
+    vtask {
         let user =
             User (
                 Type = type',
@@ -117,7 +117,7 @@ let register
     }
 
 let changePassword (users: UserManager<User>) id old ``new`` =
-    task {
+    vtask {
         let! user = % get users id
         match! users.ChangePasswordAsync (user, old, ``new``) with
         | IdentitySuccess -> return Ok user
@@ -125,7 +125,7 @@ let changePassword (users: UserManager<User>) id old ``new`` =
     }
 
 let forceChangePassword (users: UserManager<User>) id ``new`` =
-    task {
+    vtask {
         let! user = % get users id
         let! token = users.GeneratePasswordResetTokenAsync user
         match! users.ResetPasswordAsync (user, token, ``new``) with
@@ -134,7 +134,7 @@ let forceChangePassword (users: UserManager<User>) id ``new`` =
     }
 
 let changeZipCode (users: UserManager<User>) id zip =
-    task {
+    vtask {
         let! user = % get users id
         user.ZipCode <- zip
         match! users.UpdateAsync user with
@@ -143,14 +143,14 @@ let changeZipCode (users: UserManager<User>) id zip =
     }
 
 let deleteAccount users id =
-    task {
+    vtask {
         let! user = % get users id
         do! %% users.DeleteAsync user
         return Ok user
     }
 
 let deleteMyAccount contextAccessor users password =
-    task {
+    vtask {
         let! user = % me contextAccessor users
         match! users.CheckPasswordAsync (user, password) with
         | true ->
@@ -160,17 +160,17 @@ let deleteMyAccount contextAccessor users password =
     }
 
 type IUserService =
-    abstract member All: unit -> Result<User [], ErrorCode list> Task
-    abstract member Get: id: Guid -> Result<User, ErrorCode list> Task
-    abstract member Me: unit -> Result<User, ErrorCode list> Task
-    abstract member Login: username: string -> password: string -> Result<string, ErrorCode list> Task
-    abstract member Register: username: string -> password: string -> email: string -> zip: string -> Result<string, ErrorCode list> Task
-    abstract member RegisterEmployee: username: string -> password: string -> email: string -> Result<string, ErrorCode list> Task
-    abstract member ChangePassword: id: Guid -> old: string -> ``new``: string -> Result<User, ErrorCode list> Task
-    abstract member ForceChangePassword: id: Guid -> ``new``: string -> Result<User, ErrorCode list> Task
-    abstract member ChangeZipCode: id: Guid -> zip: string -> Result<User, ErrorCode list> Task
-    abstract member DeleteAccount: id: Guid -> Result<User, ErrorCode list> Task
-    abstract member DeleteMyAccount: password: string -> Result<User, ErrorCode list> Task
+    abstract member All: unit -> Result<User [], ErrorCode list> ValueTask
+    abstract member Get: id: Guid -> Result<User, ErrorCode list> ValueTask
+    abstract member Me: unit -> Result<User, ErrorCode list> ValueTask
+    abstract member Login: username: string -> password: string -> Result<string, ErrorCode list> ValueTask
+    abstract member Register: username: string -> password: string -> email: string -> zip: string -> Result<string, ErrorCode list> ValueTask
+    abstract member RegisterEmployee: username: string -> password: string -> email: string -> Result<string, ErrorCode list> ValueTask
+    abstract member ChangePassword: id: Guid -> old: string -> ``new``: string -> Result<User, ErrorCode list> ValueTask
+    abstract member ForceChangePassword: id: Guid -> ``new``: string -> Result<User, ErrorCode list> ValueTask
+    abstract member ChangeZipCode: id: Guid -> zip: string -> Result<User, ErrorCode list> ValueTask
+    abstract member DeleteAccount: id: Guid -> Result<User, ErrorCode list> ValueTask
+    abstract member DeleteMyAccount: password: string -> Result<User, ErrorCode list> ValueTask
 
 type UserService (config, contextAccessor, users, signIn) =
     let all () = all contextAccessor users

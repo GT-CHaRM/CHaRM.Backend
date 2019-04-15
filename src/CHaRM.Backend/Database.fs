@@ -36,7 +36,7 @@ type ContinuationTaskBuilder (cont: unit -> Task) =
     inherit AwaitableBuilder ()
 
     member __.Run (f : unit -> Ply<'u>) =
-        task {
+        vtask {
             let! value = f ()
             do! cont ()
             return value
@@ -67,27 +67,15 @@ type ApplicationDbContext (context: DbContextOptions<ApplicationDbContext>) =
                 | _ -> ()
         )
 
-        // builder.Entity<User>().HasData
-        //     [|
-        //         User (
-        //             Type = UserType.Administrator,
-        //             UserName = "admin",
-        //             Email = "admin@charm.com",
-        //             ZipCode = "",
-        //             SecurityStamp = Guid.NewGuid().ToString()
-        //         )
-        //     |]
-        // |> ignore
-
     [<DefaultValue>]
-    val mutable items: DbSet<ItemType>
+    val mutable private items: DbSet<ItemType>
 
     member this.Items
         with get () = this.items
         and set value = this.items <- value
 
     [<DefaultValue>]
-    val mutable submissions: DbSet<Submission>
+    val mutable private submissions: DbSet<Submission>
 
     member this.Submissions
         with get () = this.submissions

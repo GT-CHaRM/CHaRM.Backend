@@ -5,6 +5,7 @@ open System.IdentityModel.Tokens.Jwt
 open System.Text
 open FSharp.Utils
 open FSharp.Utils.Tasks
+open Giraffe
 open GraphQL.FSharp.Server
 open GraphQL.Server
 open GraphQL.Server.Ui.Playground
@@ -13,8 +14,8 @@ open Microsoft.AspNetCore.Authentication.JwtBearer
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.Identity
-open Microsoft.AspNetCore.Identity.EntityFrameworkCore
 open Microsoft.AspNetCore.Identity.UI.Services
+open Microsoft.AspNetCore.Mvc
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Configuration
 open Microsoft.EntityFrameworkCore
@@ -25,6 +26,23 @@ open CHaRM.Backend.Model
 open CHaRM.Backend.Schema
 open CHaRM.Backend.Services
 
+let downloadHandler =
+    setHttpHeader "Content-Type" "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    >=> setHttpHeader "Content-Disposition" "attachment; filename=\"Submissions.xlsx\""
+    >=> handleContext (
+        fun ctx-> task {
+            let submissions = ctx.GetService<ISubmissionService> ()
+            let! (stream, _) = submissions.DownloadExcel DateTimeOffset.MinValue DateTimeOffset.MaxValue
+            stream.Seek(0L, IO.SeekOrigin.Begin) |> ignore
+            return! ctx.WriteStreamAsync true stream None None
+        }
+    )
+
+
+let webApp =
+    choose [
+        route "/download" >=> downloadHandler
+    ]
 
 let ensureDbCreated (app: IApplicationBuilder) =
     use serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope()
@@ -97,12 +115,16 @@ let configure (app: IApplicationBuilder) =
     app.UseGraphQLWebSockets<Schema> "/graphql" |> ignore
     app.UseGraphQLPlayground (GraphQLPlaygroundOptions ()) |> ignore
 
+    app.UseGiraffe webApp
+    |> ignore
+
     ensureDbCreated app
 
     addAdminAccount(app.ApplicationServices.GetRequiredService<UserManager<User>> ()).Wait()
     addDefaultItems(app.ApplicationServices.GetRequiredService<IItemService> ()).Wait()
 
     ()
+
 
 let configureServices (services: IServiceCollection) =
     let config = getConfig ()
@@ -169,6 +191,7 @@ let configureServices (services: IServiceCollection) =
     |> ignore
 
     services.AddCors () |> ignore
+
     services
         .AddSingleton<Schema>(
             implementationFactory = Func<_, _> (DependencyInjection.resolve >> Schema)
@@ -179,6 +202,9 @@ let configureServices (services: IServiceCollection) =
         )
         .AddDefaultFieldNameConverter()
         .AddAuthorization<Policy> id
+    |> ignore
+
+    services.AddGiraffe ()
     |> ignore
 
     ()

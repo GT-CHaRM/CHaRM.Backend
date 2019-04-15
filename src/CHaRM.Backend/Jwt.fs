@@ -15,7 +15,7 @@ open CHaRM.Backend.Model
 // https://medium.com/@ozgurgul/asp-net-core-2-0-webapi-jwt-authentication-with-identity-mysql-3698eeba6ff8
 
 let internal getClaims (user: #User) =
-    Task.FromResult [
+    [
         Claim (
             ``type`` = JwtRegisteredClaimNames.Sub,
             value = user.NormalizedEmail
@@ -59,13 +59,11 @@ let generateJwtToken
     (config: IConfigurationRoot)
     (user: #User) =
     task {
-        let! claims = getClaims user
-
         return
             JwtSecurityToken (
                 issuer = config.["Security:Tokens:Issuer"],
                 audience = config.["Security:Tokens:Audience"],
-                claims = claims,
+                claims = getClaims user,
                 expires = getExpiry config,
                 signingCredentials = getSigningCredentials config
             )

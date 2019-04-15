@@ -19,21 +19,21 @@ module Arguments =
 
 let ItemTypeGraph =
     object<ItemType> [
-        description "A type that represents a specific acceptable item in our database."
+        Documentation.description "A type that represents a specific acceptable item in our database."
         fields [
             field __ [
-                description "The item's unique GUID"
-                resolve.property (fun this -> task { return this.Id })
+                Documentation.description "The item's unique GUID"
+                resolve.property (fun this -> vtask { return this.Id })
             ]
 
             field __ [
-                description "The item's name"
-                resolve.property (fun this -> task { return this.Name })
+                Documentation.description "The item's name"
+                resolve.property (fun this -> vtask { return this.Name })
             ]
 
             field __ [
-                description "The item's description"
-                resolve.property (fun this -> task { return this.Description })
+                Documentation.description "The item's description"
+                resolve.property (fun this -> vtask { return this.Description })
             ]
         ]
     ]
@@ -41,14 +41,14 @@ let ItemTypeGraph =
 let Query (items: IItemService) =
     endpoints [
         endpoint "Items" __ [
-            description "List of items available to submit"
+            Documentation.description "List of items available to submit"
 
-            resolve.endpoint (fun _ -> task { return! items.All () })
+            resolve.endpoint (fun _ -> vtask { return! items.All () })
         ]
 
         endpoint "Item" __ [
-            description "A single item identified by its GUID"
-            argumentDocumentation [
+            Documentation.description "A single item identified by its GUID"
+            Documentation.arguments [
                 "Id" => "The GUID of the item"
             ]
 
@@ -57,7 +57,7 @@ let Query (items: IItemService) =
                     return args
                 }
             )
-            resolve.endpoint (fun args -> task { return! items.Get args.Id })
+            resolve.endpoint (fun args -> vtask { return! items.Get args.Id })
         ]
     ]
 
@@ -65,8 +65,8 @@ let Mutation (items: IItemService) =
     // TODO: Add a way to add item descriptions for tooltips
     endpoints [
         endpoint "CreateItem" __ [
-            description "Adds a new item that can be submitted"
-            argumentDocumentation [
+            Documentation.description "Adds a new item that can be submitted"
+            Documentation.arguments [
                 "Name" => "The name of the item"
                 "Description" => "The description for the item"
             ]
@@ -76,11 +76,11 @@ let Mutation (items: IItemService) =
                     return args
                 }
             )
-            resolve.endpoint (fun args -> task { return! items.Create args.Name args.Description })
+            resolve.endpoint (fun args -> vtask { return! items.Create args.Name args.Description })
         ]
         endpoint "ModifyItem" __ [
-            description "Modifies an existing item that can be submitted"
-            argumentDocumentation [
+            Documentation.description "Modifies an existing item that can be submitted"
+            Documentation.arguments [
                 "Id" => "The id of the item"
                 "Name" => "The new name of the item"
                 "Description" => "The new description for the item"
@@ -91,7 +91,7 @@ let Mutation (items: IItemService) =
                     return args
                 }
             )
-            resolve.endpoint (fun args -> task { return! items.Edit args.Id args.Name args.Description })
+            resolve.endpoint (fun args -> vtask { return! items.Edit args.Id args.Name args.Description })
         ]
     ]
 
