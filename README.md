@@ -35,7 +35,7 @@ Crash when trying to change user's password or zipcode
 
 This repository is for running the backend database server. It should be ran on a machine that is up whenever you believe the application may be accessed, recommendations being either 24/7 or CHaRM's operational hours. The choice to use a 3rd party server provider or a locally maintained server at the CHaRM Facility is up to your discretion.
 
-# Running the Server
+### Running the Server
 
 -   Make sure to have .NET Core SDK 2.2 installed.
 -   Clone the repository
