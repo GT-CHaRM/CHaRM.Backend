@@ -1,5 +1,7 @@
 version: "3"
 services:
+    frontend:
+        build: ./
     database:
         image: mcr.microsoft.com/mssql/server:2019-CTP2.2-ubuntu
         environment:

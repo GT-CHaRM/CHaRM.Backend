@@ -20,6 +20,11 @@ module DotNet =
             |> String.concat " "
         DotNet.exec settings "run" args |> ignore
 
+    let publish settings path =
+        sprintf "--configuration Release --output %s" path
+        |> DotNet.exec settings "publish"
+         |> ignore
+
 let getFsproj directory =
     DirectoryInfo.getFiles directory
     |> Array.tryFind (fun file -> file.Extension = ".fsproj")
@@ -98,6 +103,10 @@ Target.create "CountLOC" (fun _ ->
 )
 
 Target.create "Reload" ignore
+
+Target.create "Publish" (fun _ ->
+    DotNet.publish id "./"
+)
 
 open Fake.Core.TargetOperators
 
