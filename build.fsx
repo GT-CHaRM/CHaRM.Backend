@@ -105,7 +105,8 @@ Target.create "CountLOC" (fun _ ->
 Target.create "Reload" ignore
 
 Target.create "Publish" (fun _ ->
-    DotNet.publish id "./"
+    sprintf "%s/build" __SOURCE_DIRECTORY__
+    |> DotNet.publish id
 )
 
 open Fake.Core.TargetOperators

@@ -139,21 +139,90 @@ open OfficeOpenXml
 module Queryable =
     let toArray (queryable: IQueryable<_>) = queryable.ToArrayAsync ()
 
+type ExcelRangeBase with
+    member this.LoadRow (row: string list) =
+        String.Join (",", row)
+        |> this.LoadFromText
+
 let downloadExcel (db: ApplicationDbContext) startDate endDate =
     vtask {
         use package = new ExcelPackage ()
         let worksheet = package.Workbook.Worksheets.Add "Submissions"
 
-        let! data =
+        let! items =
             query {
-                for submission in db.Submissions do
-                    where (submission.Submitted >= startDate && submission.Submitted <= endDate)
-                    select submission
+                for item in db.Items do
+                    select item
             }
             |> Queryable.toArray
 
-        worksheet.Cells.["B2:B2"].LoadFromCollection data
+        let! submissions =
+            (query {
+                for submission in db.Submissions do
+                    where (submission.Submitted >= startDate && submission.Submitted <= endDate)
+                    select submission
+            })
+                .Include(fun submission -> submission.Items :> _ seq)
+                .ThenInclude(fun (batch: ItemSubmissionBatch) -> batch.Item)
+                .Include(fun submission -> submission.Visitor)
+                // .ThenInclude(fun (batch: ItemSubmissionBatch) -> batch.Item)
+            |> Queryable.toArray
+
+        // let itemStatistics =
+        //     submissions
+        //     |> Array.collect (
+        //         fun submission ->
+        //             submission.Items
+        //             |> Seq.toArray
+        //             |> Array.map (
+        //                 fun item ->
+        //                     struct (submission, item)
+        //             )
+        //     )
+        //     |> Array.groupBy (
+        //         fun struct (_, batch) ->
+        //             batch.Id
+        //     )
+
+        let getItemCount id (items: ItemSubmissionBatch HashSet) =
+            items
+            |> Seq.tryFind (fun item -> item.Item.Id = id)
+            |> Option.map (fun item -> item.Count)
+            |> Option.defaultValue 0
+
+        worksheet.Cells.["A1:A1"]
+            .LoadRow [
+                yield "Id"
+                yield "Username"
+                yield "Date"
+                yield "Zip Code"
+                yield!
+                    items
+                    |> Array.map (fun item -> item.Name)
+            ]
         |> ignore
+
+        submissions
+        |> Array.iteri (
+            fun i submission ->
+                let itemCounts =
+                    items
+                    |> Array.map (
+                        fun item -> getItemCount item.Id submission.Items
+                    )
+                let submissionDate = submission.Submitted.ToString "MM-dd-yyyy"
+                worksheet.Cells.[sprintf "A%i:A%i" (i + 2) (i + 2)]
+                    .LoadRow [
+                        yield string submission.Id
+                        yield submission.Visitor.UserName
+                        yield submissionDate
+                        yield submission.ZipCode
+                        yield!
+                            itemCounts
+                            |> Array.map string
+                    ]
+                |> ignore
+        )
 
         let stream = new MemoryStream ()
         package.SaveAs stream
