@@ -6,29 +6,29 @@
 ### Features
 
 Account Management
-Registration and Login for users of 3 types: visitors, employees, and admin
+- Registration and Login for users of 3 types: visitors, employees, and admin
   
-Ability to delete or modify accounts
+- Ability to delete or modify accounts
   
   
-Ability to change user preferences
+- Ability to change user preferences
 
-Ability to Log Items that are able to be handed off the the CHaRM facility to be recycled.
+- Ability to Log Items that are able to be handed off the the CHaRM facility to be recycled.
 
-Ability to Edit log items entries.
+- Ability to Edit log items entries.
 
-Ability for employees to view previous submissions.
+- Ability for employees to view previous submissions.
 
-Export to Excel Functionality.
+-Export to Excel Functionality.
 
 
 ### Currently, No Known Defects
 
 ### Previous Defects - FIXED
 
-UI styling error when upgrading react native versions.
+- UI styling error when upgrading react native versions.
 
-Crash when trying to change user's password or zipcode
+- Crash when trying to change user's password or zipcode
 
 
 ## Installation Guide
