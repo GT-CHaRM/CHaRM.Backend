@@ -19,7 +19,7 @@ Account Management
 
 - Ability for employees to view previous submissions.
 
--Export to Excel Functionality.
+- Export to Excel Functionality.
 
 
 ### Currently, No Known Defects
