@@ -30,11 +30,11 @@ Account Management
 
 ## Installation Guide
 
-This repository is for running the backend server. It should be ran on a machine that is up whenever you believe the application may be accessed, recommendations being either 24/7 or CHaRM's operational hours. The choice to use a 3rd party server provider or a locally maintained server at the CHaRM Facility is up to your discretion.
+This repository is for running the backend server. It should be set up on a machine that is running whenever you believe the application may be accessed; we reccomend these times be either 24/7 or during CHaRM's operational hours. The choice to use a 3rd party server provider or a locally maintained server at the CHaRM Facility is up to your discretion.
 
 ### Updating the Database Connection String
 
-Before running the server, you must make sure that you have an SQL database (MSSQL was used in development, but MySQL, PostgreSQL, and MariaDB should work as well). Update the `appsettings.json` file, located in the `src` directory, with the correct connection string to your SQL server. If you're using cloud database storage services, such as Azure SQL Database, this connection string should be given to you in the configuration page.
+Before running the server, you must make sure that you have an SQL database (MSSQL was used in development, but MySQL, PostgreSQL, and MariaDB should work just as well). Update the `appsettings.json` file, located in the `src` directory, with the correct connection string to your SQL server. If you're using cloud database storage services, such as Azure SQL Database, this connection string should be given to you in the configuration page.
 
 ### Running the Server
 
@@ -57,13 +57,13 @@ Before running the server, you must make sure that you have an SQL database (MSS
         dotnet run
         ```
 
-    Currently, we have experience no errors with the above series of commands. If an issue occurs, ensure the commands above were all successfully executed and .NET Core SDK 2.2 successfully installed. A restart may be required.
+    Currently, we have experienced no errors with the above series of commands. If an error occurs, ensure the commands above were all successfully executed and that .NET Core SDK 2.2 was successfully installed. A machine restart may be required.
 
 ### Deploying with Docker
 
 To deploy the database and the backend API with docker, clone the current repository and `cd` into it. Then, run `docker-compose up`. This will build your backend server code, run the database, and run the backend server. Make sure that your `appsettings.json` is configured properly, as mentioned above.
 
-### For Information on Running the UI component (what visitors and most users will be purely interacting with)
+### For Information on Running the UI component (which will be the sole point of interaction for nearly all users)
 
 https://github.com/GT-CHaRM/CHaRM.UI
 
