@@ -1,7 +1,5 @@
 version: "3"
 services:
-    frontend:
-        build: ./
     database:
         image: mcr.microsoft.com/mssql/server:2019-CTP2.2-ubuntu
         environment:
@@ -9,3 +7,17 @@ services:
             - SA_PASSWORD=3OXa0H8T3U1wLh29
         ports:
             - 1433:1433
+    database_preparer:
+        image: mcr.microsoft.com/mssql-tools
+        depends_on:
+            - database
+        volumes:
+            - ./init-db.sh:/usr/src/app/init-db.sh
+        entrypoint: /usr/src/app/init-db.sh
+    frontend:
+        build: ./
+        depends_on:
+            - database
+            - database_preparer
+        ports:
+            - 5000:5000

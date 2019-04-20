@@ -1,1 +1,0 @@
-/opt/mssql/bin/sqlservr

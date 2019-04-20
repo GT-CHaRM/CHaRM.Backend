@@ -2,6 +2,8 @@ FROM mcr.microsoft.com/dotnet/core/sdk:2.2-alpine as builder
 
 RUN dotnet tool install fake-cli -g
 
+ENV PATH="/root/.dotnet/tools:${PATH}"
+
 WORKDIR /usr/src/app
 
 COPY . .
