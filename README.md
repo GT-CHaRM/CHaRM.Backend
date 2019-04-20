@@ -55,5 +55,6 @@ This repository is for running the backend database server. It should be ran on 
     ```sh
     dotnet run
     ```
+ Currently We have experience no errors with the above series of commands, if issue occurs, ensure the commands above all were    sucessfully executed and .NET Core SDK 2.2 succesfully installed, a restart may be required.
 ### For Information on Running the UI component (what visitors and most users will be purely interacting with)
 https://github.com/GT-CHaRM/CHaRM.UI
