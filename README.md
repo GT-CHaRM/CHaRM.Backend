@@ -59,6 +59,10 @@ Before running the server, you must make sure that you have an SQL database (MSS
 
     Currently, we have experience no errors with the above series of commands. If an issue occurs, ensure the commands above were all successfully executed and .NET Core SDK 2.2 successfully installed. A restart may be required.
 
+### Deploying with Docker
+
+To deploy the database and the backend API with docker, clone the current repository and `cd` into it. Then, run `docker-compose up`. This will build your backend server code, run the database, and run the backend server. Make sure that your `appsettings.json` is configured properly, as mentioned above.
+
 ### For Information on Running the UI component (what visitors and most users will be purely interacting with)
 
 https://github.com/GT-CHaRM/CHaRM.UI
