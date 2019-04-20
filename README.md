@@ -37,7 +37,7 @@ This repository is for running the backend database server. It should be ran on 
 
 ### Running the Server
 
--   Make sure to have .NET Core SDK 2.2 installed.
+-   Make sure to have .NET Core SDK 2.2 installed. https://dotnet.microsoft.com/download/dotnet-core/2.2
 -   Clone the repository
 
     ```sh
